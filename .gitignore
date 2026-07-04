@@ -15,11 +15,6 @@ out/
 .env
 .env.local
 
-# runtime data
-*.sqlite
-*.sqlite-journal
-backend/data/vector-store.sqlite
-
 # logs
 npm-debug.log*
 *.log

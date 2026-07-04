@@ -1,6 +1,24 @@
-version: "3.9"
-
 services:
+  # Vector database (pgvector extension on Postgres). Exposed on the host at
+  # 5433, not the default 5432, so it won't clash with any other Postgres
+  # instance you might already have running locally.
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: gruve-postgres
+    environment:
+      - POSTGRES_USER=gruve
+      - POSTGRES_PASSWORD=gruve
+      - POSTGRES_DB=gruve_vectors
+    ports:
+      - "5433:5432"
+    volumes:
+      - gruve-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gruve -d gruve_vectors"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   python-service:
     build: ./python-service
     container_name: gruve-embeddings
@@ -22,10 +40,12 @@ services:
       - ANTHROPIC_MODEL=${ANTHROPIC_MODEL:-claude-sonnet-5}
       - PYTHON_EMBEDDING_SERVICE_URL=http://python-service:8001
       - MCP_SERVER_ENTRY=/app/mcp-server/dist/index.js
+      - POSTGRES_URL=postgresql://gruve:gruve@postgres:5432/gruve_vectors
     depends_on:
-      - python-service
-    volumes:
-      - backend-data:/app/backend/data
+      python-service:
+        condition: service_started
+      postgres:
+        condition: service_healthy
 
   frontend:
     build:
@@ -40,4 +60,4 @@ services:
       - backend
 
 volumes:
-  backend-data:
+  gruve-postgres-data:

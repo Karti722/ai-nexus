@@ -1,13 +1,15 @@
-import Database from "better-sqlite3";
-import fs from "fs";
-import path from "path";
+import { Pool } from "pg";
+import { config } from "../config";
+import { EMBEDDING_DIMS } from "./embeddingsClient";
 
 /**
- * Lightweight vector store backed by SQLite: rows hold the raw chunk text
- * plus its embedding (serialized as JSON). Similarity search is an exact
- * cosine-similarity scan in JS rather than an ANN index — perfectly fine at
- * the scale of a demo knowledge base (see 06-vector-databases.md for when a
- * dedicated vector DB like Pinecone/Qdrant actually becomes necessary).
+ * Vector store backed by real pgvector: a Postgres extension that adds a
+ * native `vector` column type plus ANN indexing (HNSW). Similarity search is
+ * pushed down into Postgres as an indexed `ORDER BY embedding <=> $query`
+ * query instead of pulling every row into JS and scoring it by hand — the
+ * same pattern a production RAG pipeline would use (see
+ * 06-vector-databases.md for the general concept, and this file for how it
+ * looks in practice with a real vector DB rather than an exact in-memory scan).
  */
 
 export interface StoredChunk {
@@ -20,72 +22,76 @@ export interface SearchResult extends StoredChunk {
   score: number;
 }
 
-// __dirname is backend/src/rag in dev (tsx) and backend/dist/rag once built —
-// both are exactly two levels below backend/, so this resolves to the same
-// backend/data/ directory in either case.
-const dbPath = path.resolve(__dirname, "../../data/vector-store.sqlite");
-fs.mkdirSync(path.dirname(dbPath), { recursive: true });
-const db = new Database(dbPath);
+const pool = new Pool({ connectionString: config.postgresUrl });
 
-db.exec(`
-  CREATE TABLE IF NOT EXISTS chunks (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    source TEXT NOT NULL,
-    text TEXT NOT NULL,
-    embedding TEXT NOT NULL
-  );
-`);
+let readyPromise: Promise<void> | null = null;
 
-export function isStoreEmpty(): boolean {
-  const row = db.prepare("SELECT COUNT(*) as count FROM chunks").get() as { count: number };
-  return row.count === 0;
+/** Lazily creates the pgvector extension, table, and HNSW index the first
+ * time the store is touched. Safe to call repeatedly — every statement is
+ * idempotent (`IF NOT EXISTS`). */
+function ensureReady(): Promise<void> {
+  if (!readyPromise) {
+    readyPromise = (async () => {
+      await pool.query("CREATE EXTENSION IF NOT EXISTS vector");
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS chunks (
+          id SERIAL PRIMARY KEY,
+          source TEXT NOT NULL,
+          text TEXT NOT NULL,
+          embedding vector(${EMBEDDING_DIMS}) NOT NULL
+        )
+      `);
+      await pool.query(`
+        CREATE INDEX IF NOT EXISTS chunks_embedding_hnsw_idx
+        ON chunks USING hnsw (embedding vector_cosine_ops)
+      `);
+    })();
+  }
+  return readyPromise;
 }
 
-export function clearStore(): void {
-  db.exec("DELETE FROM chunks");
+/** pgvector's wire format for a vector literal: '[0.1,0.2,...]'. */
+function toVectorLiteral(embedding: number[]): string {
+  return `[${embedding.join(",")}]`;
 }
 
-export function addChunk(source: string, text: string, embedding: number[]): void {
-  db.prepare("INSERT INTO chunks (source, text, embedding) VALUES (?, ?, ?)").run(
+export async function isStoreEmpty(): Promise<boolean> {
+  return (await countChunks()) === 0;
+}
+
+export async function clearStore(): Promise<void> {
+  await ensureReady();
+  await pool.query("DELETE FROM chunks");
+}
+
+export async function addChunk(source: string, text: string, embedding: number[]): Promise<void> {
+  await ensureReady();
+  await pool.query("INSERT INTO chunks (source, text, embedding) VALUES ($1, $2, $3)", [
     source,
     text,
-    JSON.stringify(embedding)
+    toVectorLiteral(embedding),
+  ]);
+}
+
+export async function countChunks(): Promise<number> {
+  await ensureReady();
+  const { rows } = await pool.query<{ count: string }>("SELECT COUNT(*) AS count FROM chunks");
+  return Number(rows[0].count);
+}
+
+export async function searchSimilar(queryEmbedding: number[], topK = 4): Promise<SearchResult[]> {
+  await ensureReady();
+
+  // `<=>` is pgvector's cosine-distance operator (0 = identical). Flipping it
+  // to `1 - distance` keeps the same "higher score = more similar" semantics
+  // the rest of the app (routes, agent tools, frontend) already expects.
+  const { rows } = await pool.query<{ id: number; source: string; text: string; score: number }>(
+    `SELECT id, source, text, 1 - (embedding <=> $1) AS score
+     FROM chunks
+     ORDER BY embedding <=> $1
+     LIMIT $2`,
+    [toVectorLiteral(queryEmbedding), topK]
   );
-}
 
-export function countChunks(): number {
-  const row = db.prepare("SELECT COUNT(*) as count FROM chunks").get() as { count: number };
-  return row.count;
-}
-
-export function searchSimilar(queryEmbedding: number[], topK = 4): SearchResult[] {
-  const rows = db.prepare("SELECT id, source, text, embedding FROM chunks").all() as (StoredChunk & {
-    embedding: string;
-  })[];
-
-  const scored = rows.map((row) => ({
-    id: row.id,
-    source: row.source,
-    text: row.text,
-    score: cosineSimilarity(queryEmbedding, JSON.parse(row.embedding)),
-  }));
-
-  scored.sort((a, b) => b.score - a.score);
-  return scored.slice(0, topK);
-}
-
-function cosineSimilarity(a: number[], b: number[]): number {
-  const len = Math.min(a.length, b.length);
-  let dot = 0;
-  let normA = 0;
-  let normB = 0;
-
-  for (let i = 0; i < len; i++) {
-    dot += a[i] * b[i];
-    normA += a[i] * a[i];
-    normB += b[i] * b[i];
-  }
-
-  const denom = Math.sqrt(normA) * Math.sqrt(normB);
-  return denom === 0 ? 0 : dot / denom;
+  return rows.map((r) => ({ ...r, score: Number(r.score) }));
 }

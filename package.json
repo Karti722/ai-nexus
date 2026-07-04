@@ -10,6 +10,8 @@
     "dev:backend": "npm run dev --prefix backend",
     "dev:frontend": "npm run dev --prefix frontend",
     "dev:python": "npm run dev --prefix python-service",
+    "db:up": "docker compose up -d postgres",
+    "db:down": "docker compose stop postgres",
     "stop": "node scripts/stop-all.js"
   },
   "devDependencies": {

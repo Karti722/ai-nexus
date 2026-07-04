@@ -13,11 +13,15 @@ Postgres with the pgvector extension.
 
 For small datasets (a few thousand chunks or fewer), a full, exact
 similarity scan — computing cosine similarity between the query vector and
-every stored vector — is fast enough that a dedicated ANN index isn't
-necessary yet; a relational database with a vector column, or even an
-in-memory array, works fine. Teams typically migrate to a dedicated vector
-database once dataset size or query volume makes exact search too slow, not
-before.
+every stored vector in application code — is often fast enough that a
+dedicated ANN index isn't strictly necessary. Even so, reaching for a real
+vector-capable store early costs little and means the retrieval query,
+index, and scaling story are already production-shaped rather than something
+to migrate later. This app's own RAG pipeline does exactly that: it stores
+embeddings in Postgres via the pgvector extension, with a genuine HNSW index
+(`CREATE INDEX ... USING hnsw (embedding vector_cosine_ops)`), and asks
+Postgres itself to do the nearest-neighbor search (`ORDER BY embedding <=>
+$query LIMIT k`) rather than pulling every row into application memory.
 
 Embeddings and vector search are the retrieval half of a RAG pipeline; the
 generation half is handled by the LLM itself.

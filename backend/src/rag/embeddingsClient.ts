@@ -1,6 +1,6 @@
 import { config } from "../config";
 
-const EMBEDDING_DIMS = 256;
+export const EMBEDDING_DIMS = 256;
 
 /**
  * Gets embeddings for a batch of texts. Prefers the Python microservice

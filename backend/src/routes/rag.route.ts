@@ -24,7 +24,7 @@ ragRouter.post("/query", async (req, res) => {
 
   try {
     const [queryEmbedding] = await embedTexts([question]);
-    const matches = searchSimilar(queryEmbedding, 4);
+    const matches = await searchSimilar(queryEmbedding, 4);
 
     const contextChunks = matches.map((m, i) => ({ id: i + 1, source: m.source, text: m.text }));
     const systemPrompt = buildRagPrompt(contextChunks);

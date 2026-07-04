@@ -9,7 +9,6 @@ COPY mcp-server/ ./
 RUN npm run build
 
 FROM node:20-alpine AS backend-build
-RUN apk add --no-cache python3 make g++
 WORKDIR /app/backend
 COPY backend/package*.json ./
 RUN npm install

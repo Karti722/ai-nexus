@@ -10,7 +10,7 @@ Gruve's **AI Vibe Coding Engineer** job posting:
 | Prompt engineering | `backend/src/prompts/systemPrompts.ts` |
 | AI agents & tool use | `backend/src/agent/` + `/agent` page |
 | Model Context Protocol (MCP) | `mcp-server/` (a real MCP server) + `backend/src/agent/mcpClient.ts` (a real MCP client) |
-| Vector databases & embeddings | `backend/src/rag/vectorStore.ts`, `backend/src/rag/embeddingsClient.ts` |
+| Vector databases & embeddings | `backend/src/rag/vectorStore.ts` (real pgvector + HNSW index), `backend/src/rag/embeddingsClient.ts` |
 | Python | `python-service/` (FastAPI embeddings microservice) |
 | JavaScript/TypeScript, Node.js | `backend/`, `mcp-server/` |
 | React/Next.js | `frontend/` |
@@ -31,7 +31,7 @@ never mistaken for a live answer.
 gruve-app/
 ├── codebase.md                    # this file
 ├── package.json                   # root orchestration scripts (npm run dev, npm run stop, etc.)
-├── docker-compose.yml             # wires all 3 runtime services together
+├── docker-compose.yml             # wires postgres (pgvector), python-service, backend, frontend together
 ├── .env.example                   # copy to .env and fill in what you have
 ├── .gitignore
 ├── scripts/
@@ -50,7 +50,6 @@ gruve-app/
 │   │   │   ├── 05-mcp.md
 │   │   │   ├── 06-vector-databases.md
 │   │   │   └── 07-fullstack-and-devtools.md
-│   │   └── vector-store.sqlite    # generated at first run (gitignored)
 │   └── src/
 │       ├── server.ts              # Express app entrypoint
 │       ├── config.ts              # env var loading + mock-mode detection
@@ -64,7 +63,7 @@ gruve-app/
 │       ├── rag/
 │       │   ├── chunker.ts         # splits markdown into overlapping chunks
 │       │   ├── embeddingsClient.ts# calls python-service, falls back to local hashing embedding
-│       │   ├── vectorStore.ts     # SQLite-backed store + cosine similarity search
+│       │   ├── vectorStore.ts     # Postgres + pgvector store, HNSW-indexed cosine search
 │       │   └── seedDocuments.ts   # loads knowledge-base/*.md into the vector store
 │       ├── agent/
 │       │   ├── tools.ts           # local tools: calculator, search_knowledge_base
@@ -120,8 +119,9 @@ gruve-app/
 ### Root
 - **`package.json`** — orchestration only. `npm run dev` uses `concurrently` to boot the backend,
   frontend, Python service, and MCP server watch-build all at once.
-- **`docker-compose.yml`** — three containers: `python-service`, `backend` (which also bundles
-  `mcp-server` into its image, since the agent spawns MCP as a child process), and `frontend`.
+- **`docker-compose.yml`** — four containers: `postgres` (Postgres + the pgvector extension,
+  backing the RAG vector store), `python-service`, `backend` (which also bundles `mcp-server` into
+  its image, since the agent spawns MCP as a child process), and `frontend`.
 - **`.env.example`** — every environment variable the app reads, each with an inline comment
   explaining what it's for and what happens if it's left blank.
 - **`scripts/stop-all.js`** — powers `npm run stop`. Finds and kills anything listening on this
@@ -147,9 +147,11 @@ gruve-app/
   - `embeddingsClient.ts` — POSTs text to the Python embedding service; if that service is
     unreachable, transparently falls back to an in-process deterministic hashing embedding (same
     algorithm the Python service itself falls back to), so RAG never hard-fails.
-  - `vectorStore.ts` — a SQLite table (`chunks`) holding raw text + JSON-serialized embeddings,
-    with cosine-similarity search done as an exact scan in JS. (See `06-vector-databases.md` for
-    when you'd graduate to a real ANN-indexed vector database instead.)
+  - `vectorStore.ts` — a real vector database: Postgres + the **pgvector** extension, with a
+    `chunks` table (`embedding vector(256)`) and a genuine HNSW ANN index
+    (`USING hnsw (embedding vector_cosine_ops)`). Similarity search is pushed down into Postgres
+    itself (`ORDER BY embedding <=> $query LIMIT k`) rather than scored by hand in JS. (See
+    `06-vector-databases.md` for the general concept this implements.)
   - `seedDocuments.ts` — on first boot, chunks + embeds every file in
     `data/knowledge-base/` and writes it into the vector store; skipped on later restarts.
 - **`src/agent/`**
@@ -201,7 +203,10 @@ download required. The file's docstring shows exactly how to swap in a real
 ### Prerequisites
 - **Node.js 20+** and npm
 - **Python 3.10+** and pip
-- **Docker + Docker Compose** (optional — only needed for the containerized run)
+- **Docker + Docker Compose** — required even for local (non-containerized) dev now: the RAG
+  vector store is real Postgres + pgvector, and the Docker image is the supported way to get that
+  running. (If you already run Postgres with pgvector natively, you can point `POSTGRES_URL` at
+  that instead and skip Docker entirely.)
 - An **Anthropic API key** (optional — [console.anthropic.com](https://console.anthropic.com/)).
   Without one, the app runs in mock mode automatically.
 
@@ -226,6 +231,18 @@ npm run build:mcp
 
 ## 4. Running it
 
+### Step 0 — start the vector database (required for Options A and B)
+```bash
+npm run db:up
+```
+Starts just the `postgres` (pgvector) container in the background — `docker compose up -d
+postgres`. The backend connects to it at `localhost:5433` (see `POSTGRES_URL` in `.env`; port
+5433, not 5432, so it won't clash with a Postgres you might already have running locally). Data
+persists in a Docker volume, so you only need to do this once per work session — it stays up
+across backend restarts and even reboots (until you `npm run db:down` or `docker compose down`).
+If you skip this, the backend will crash on startup with a Postgres connection error, since RAG
+seeding needs the database immediately.
+
 ### Option A — everything at once (recommended for local dev)
 ```bash
 npm run dev
@@ -241,13 +258,13 @@ npm run dev:python      # FastAPI on :8001
 npm run build --prefix mcp-server   # compile the MCP server (agent spawns it on demand)
 ```
 
-### Option C — Docker Compose
+### Option C — Docker Compose (includes the database — no separate `db:up` step needed)
 ```bash
 docker compose up --build
 ```
-Brings up `python-service` (:8001), `backend` (:4000, with the MCP server built into its image),
-and `frontend` (:3000). Set `ANTHROPIC_API_KEY` in your shell or a root `.env` before running to
-get live Claude responses instead of mock mode.
+Brings up `postgres` (pgvector, :5433), `python-service` (:8001), `backend` (:4000, with the MCP
+server built into its image), and `frontend` (:3000). Set `ANTHROPIC_API_KEY` in your shell or a
+root `.env` before running to get live Claude responses instead of mock mode.
 
 ### Stopping everything (Options A / B)
 ```bash
@@ -262,16 +279,23 @@ watcher processes, so the next `npm run dev` doesn't fail with an address-alread
 It only ever kills processes it confirms are `node`/`python` — if something else is unexpectedly
 holding one of those ports, it's skipped and logged rather than killed. Safe to run any time
 (including when nothing is running) and safe to run multiple times in a row.
-(This only applies to Options A/B — stop the Docker Compose path with `docker compose down`.)
+
+Note: `npm run stop` deliberately does **not** touch the `postgres` container — that's a
+long-lived data service, not a dev server, so it's left running across `npm run dev` sessions.
+Stop it explicitly with `npm run db:down` when you're done working. (Options A/B only — stop the
+Docker Compose path with `docker compose down`, which stops everything including the database.)
 
 ### Individual commands worth knowing
 | Command | What it does |
 |---|---|
+| `npm run db:up` | Start just the pgvector Postgres container (`docker compose up -d postgres`) |
+| `npm run db:down` | Stop the pgvector Postgres container |
 | `npm run typecheck --prefix backend` | Type-check the API without emitting files |
 | `npm run build --prefix backend` | Compile backend TypeScript to `backend/dist` |
 | `npm run build --prefix frontend` | Production Next.js build |
 | `npm run build --prefix mcp-server` | Compile the MCP server |
 | `python -m uvicorn app.main:app --reload --port 8001` (run from `python-service/`) | Run the embeddings service directly |
+| `docker exec gruve-postgres psql -U gruve -d gruve_vectors` | Open a `psql` shell directly against the vector store |
 
 ---
 
@@ -291,8 +315,9 @@ conversation with real multi-turn history sent on every request.
 **RAG (`/rag`)** — a question box with three clickable sample questions. Ask something like *"What
 is the Model Context Protocol?"* and you'll see an **Answer** card (with the same mock/live badge)
 followed by a **Retrieved sources** list: numbered citation cards (`[1]`, `[2]`, …) each showing
-the source markdown file, a cosine-similarity score, and the exact retrieved passage — so you can
-see precisely what grounded the answer.
+the source markdown file, a cosine-similarity score (computed by pgvector's HNSW index, not
+hand-rolled JS), and the exact retrieved passage — so you can see precisely what grounded the
+answer.
 
 **AI Agent + MCP (`/agent`)** — a prompt box, an "Include tools from the MCP server" checkbox, and
 three one-click sample prompts:
@@ -318,9 +343,13 @@ the agent's answer — the full think → act → observe → answer loop made v
   zero API cost or setup friction.
 - **Never commit your `.env`.** It's already gitignored; `.env.example` is the only file meant to
   be checked in.
-- **The vector store is exact-scan cosine similarity**, appropriate at this knowledge-base's scale
-  (a few dozen chunks). `backend/data/knowledge-base/06-vector-databases.md` explains when
-  you'd graduate to a dedicated ANN-indexed vector database like Pinecone or Qdrant instead.
+- **The vector store is real Postgres + pgvector**, with a genuine HNSW ANN index — not an
+  in-memory or hand-rolled similarity scan. At this knowledge-base's scale (a few dozen chunks) an
+  exact scan would've been fast enough too, but pgvector was chosen anyway since it's the more
+  common production pattern and the migration cost from "exact scan in JS" was low (see
+  `backend/data/knowledge-base/06-vector-databases.md` for the general tradeoff). Postgres runs in
+  its own Docker container (`npm run db:up`), separate from the app's own dev servers, so it isn't
+  affected by `npm run stop`.
 - **Known trade-off:** `frontend/package.json` pins Next.js to the latest `14.2.x` patch rather
   than jumping to Next 16, since the remaining advisories in that line (image-optimization DoS,
   websocket SSRF, i18n middleware bypass) affect features this demo doesn't use, and a major

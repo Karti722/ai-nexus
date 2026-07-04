@@ -11,8 +11,8 @@ const KB_DIR = path.resolve(__dirname, "../../data/knowledge-base");
  * chunks, and writes them into the vector store. Runs once at server
  * startup; skipped on subsequent restarts once the store is populated. */
 export async function seedKnowledgeBaseIfEmpty(): Promise<void> {
-  if (!isStoreEmpty()) {
-    console.log(`[rag] vector store already has ${countChunks()} chunks — skipping seed.`);
+  if (!(await isStoreEmpty())) {
+    console.log(`[rag] vector store already has ${await countChunks()} chunks — skipping seed.`);
     return;
   }
 
@@ -25,8 +25,10 @@ export async function seedKnowledgeBaseIfEmpty(): Promise<void> {
     const chunks = chunkText(raw);
     const embeddings = await embedTexts(chunks);
 
-    chunks.forEach((chunk, i) => addChunk(file, chunk, embeddings[i]));
+    for (let i = 0; i < chunks.length; i++) {
+      await addChunk(file, chunks[i], embeddings[i]);
+    }
   }
 
-  console.log(`[rag] seeding complete — ${countChunks()} chunks indexed.`);
+  console.log(`[rag] seeding complete — ${await countChunks()} chunks indexed.`);
 }
