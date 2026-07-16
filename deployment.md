@@ -34,7 +34,7 @@ image. Deploy the backend first, then build the frontend pointing at that URL.
 | `ANTHROPIC_MODEL` | backend | e.g. `claude-sonnet-5` |
 | `PORT` | backend | `4000` (or whatever the platform expects) |
 | `PYTHON_EMBEDDING_SERVICE_URL` | backend | `python-service`'s **internal** URL (e.g. `http://python-service.internal:8001`) |
-| `POSTGRES_URL` | backend | `postgresql://user:pass@<managed-postgres-host>:5432/gruve_vectors` |
+| `POSTGRES_URL` | backend | `postgresql://user:pass@<managed-postgres-host>:5432/nexus_vectors` |
 | `MCP_SERVER_ENTRY` | backend | `/app/mcp-server/dist/index.js` (already the default baked into the backend image — see `backend/Dockerfile`) |
 | `EMBEDDING_SERVICE_PORT` | python-service | `8001` |
 | `NEXT_PUBLIC_API_BASE_URL` | frontend (**build-time**) | backend's public HTTPS URL |
@@ -53,31 +53,31 @@ manage), RDS for PostgreSQL (database), Secrets Manager (API key), Application L
 
 ### 2.1 Push images to ECR
 ```bash
-aws ecr create-repository --repository-name gruve/backend
-aws ecr create-repository --repository-name gruve/frontend
-aws ecr create-repository --repository-name gruve/python-service
+aws ecr create-repository --repository-name ai-nexus/backend
+aws ecr create-repository --repository-name ai-nexus/frontend
+aws ecr create-repository --repository-name ai-nexus/python-service
 
 aws ecr get-login-password --region <region> | docker login --username AWS --password-stdin <account-id>.dkr.ecr.<region>.amazonaws.com
 
 # Backend build context is the repo root (it needs the sibling mcp-server/ folder)
-docker build -f backend/Dockerfile -t <account-id>.dkr.ecr.<region>.amazonaws.com/gruve/backend:latest .
-docker build -f python-service/Dockerfile -t <account-id>.dkr.ecr.<region>.amazonaws.com/gruve/python-service:latest python-service
+docker build -f backend/Dockerfile -t <account-id>.dkr.ecr.<region>.amazonaws.com/ai-nexus/backend:latest .
+docker build -f python-service/Dockerfile -t <account-id>.dkr.ecr.<region>.amazonaws.com/ai-nexus/python-service:latest python-service
 # Build frontend AFTER you know the backend's public URL — see step 2.4
-docker push <account-id>.dkr.ecr.<region>.amazonaws.com/gruve/backend:latest
-docker push <account-id>.dkr.ecr.<region>.amazonaws.com/gruve/python-service:latest
+docker push <account-id>.dkr.ecr.<region>.amazonaws.com/ai-nexus/backend:latest
+docker push <account-id>.dkr.ecr.<region>.amazonaws.com/ai-nexus/python-service:latest
 ```
 
 ### 2.2 RDS for PostgreSQL with pgvector
 ```bash
 aws rds create-db-instance \
-  --db-instance-identifier gruve-postgres \
+  --db-instance-identifier ai-nexus-postgres \
   --engine postgres \
   --engine-version 16.4 \
   --db-instance-class db.t4g.micro \
   --allocated-storage 20 \
-  --master-username gruve \
+  --master-username nexus \
   --master-user-password <choose-a-strong-password> \
-  --db-name gruve_vectors \
+  --db-name nexus_vectors \
   --publicly-accessible false \
   --vpc-security-group-ids <sg-id>
 ```
@@ -91,33 +91,33 @@ this manual step is optional — it happens automatically the first time the bac
 
 ### 2.3 Secrets
 ```bash
-aws secretsmanager create-secret --name gruve/anthropic-api-key --secret-string "sk-ant-..."
-aws secretsmanager create-secret --name gruve/postgres-url --secret-string "postgresql://gruve:<password>@<rds-endpoint>:5432/gruve_vectors"
+aws secretsmanager create-secret --name ai-nexus/anthropic-api-key --secret-string "sk-ant-..."
+aws secretsmanager create-secret --name ai-nexus/postgres-url --secret-string "postgresql://nexus:<password>@<rds-endpoint>:5432/nexus_vectors"
 ```
 
 ### 2.4 ECS Fargate cluster, task definitions, services
 ```bash
-aws ecs create-cluster --cluster-name gruve-cluster
+aws ecs create-cluster --cluster-name ai-nexus-cluster
 ```
 Create a task definition per service (JSON, abbreviated — repeat for `python-service`):
 ```json
 {
-  "family": "gruve-backend",
+  "family": "ai-nexus-backend",
   "requiresCompatibilities": ["FARGATE"],
   "networkMode": "awsvpc",
   "cpu": "512",
   "memory": "1024",
   "containerDefinitions": [{
     "name": "backend",
-    "image": "<account-id>.dkr.ecr.<region>.amazonaws.com/gruve/backend:latest",
+    "image": "<account-id>.dkr.ecr.<region>.amazonaws.com/ai-nexus/backend:latest",
     "portMappings": [{ "containerPort": 4000 }],
     "environment": [
       { "name": "PORT", "value": "4000" },
-      { "name": "PYTHON_EMBEDDING_SERVICE_URL", "value": "http://python-service.gruve.local:8001" }
+      { "name": "PYTHON_EMBEDDING_SERVICE_URL", "value": "http://python-service.ai-nexus.local:8001" }
     ],
     "secrets": [
-      { "name": "ANTHROPIC_API_KEY", "valueFrom": "arn:aws:secretsmanager:...:gruve/anthropic-api-key" },
-      { "name": "POSTGRES_URL", "valueFrom": "arn:aws:secretsmanager:...:gruve/postgres-url" }
+      { "name": "ANTHROPIC_API_KEY", "valueFrom": "arn:aws:secretsmanager:...:ai-nexus/anthropic-api-key" },
+      { "name": "POSTGRES_URL", "valueFrom": "arn:aws:secretsmanager:...:ai-nexus/postgres-url" }
     ]
   }]
 }
@@ -126,7 +126,7 @@ Create a task definition per service (JSON, abbreviated — repeat for `python-s
 aws ecs register-task-definition --cli-input-json file://backend-task.json
 ```
 Run `python-service` as an internal ECS service using **Service Connect** (gives it the
-`python-service.gruve.local` DNS name used above) with no public load balancer. Run `backend`
+`python-service.ai-nexus.local` DNS name used above) with no public load balancer. Run `backend`
 as a service **behind an Application Load Balancer** (public, HTTPS via an ACM certificate).
 
 ### 2.5 Frontend
@@ -136,7 +136,7 @@ push the frontend with that baked in, then run it as its own Fargate service beh
 ```bash
 docker build -f frontend/Dockerfile \
   --build-arg NEXT_PUBLIC_API_BASE_URL=https://api.yourdomain.com \
-  -t <account-id>.dkr.ecr.<region>.amazonaws.com/gruve/frontend:latest frontend
+  -t <account-id>.dkr.ecr.<region>.amazonaws.com/ai-nexus/frontend:latest frontend
 ```
 (Add `ARG NEXT_PUBLIC_API_BASE_URL` / `ENV NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL`
 near the top of `frontend/Dockerfile`'s build stage if you want this as a build arg rather than
@@ -157,30 +157,32 @@ Server (database), Key Vault (API key).
 
 ### 3.1 Push images to ACR
 ```bash
-az acr create --name gruveacr --resource-group gruve-rg --sku Basic
-az acr login --name gruveacr
+az acr create --name ainexusacr --resource-group ai-nexus-rg --sku Basic
+az acr login --name ainexusacr
 
-docker build -f backend/Dockerfile -t gruveacr.azurecr.io/gruve-backend:latest .
-docker build -f python-service/Dockerfile -t gruveacr.azurecr.io/gruve-python-service:latest python-service
-docker push gruveacr.azurecr.io/gruve-backend:latest
-docker push gruveacr.azurecr.io/gruve-python-service:latest
+docker build -f backend/Dockerfile -t ainexusacr.azurecr.io/ai-nexus-backend:latest .
+docker build -f python-service/Dockerfile -t ainexusacr.azurecr.io/ai-nexus-python-service:latest python-service
+docker push ainexusacr.azurecr.io/ai-nexus-backend:latest
+docker push ainexusacr.azurecr.io/ai-nexus-python-service:latest
 ```
+(ACR registry names must be globally unique and alphanumeric-only — no hyphens — hence
+`ainexusacr` rather than `ai-nexus-acr`.)
 
 ### 3.2 Azure Database for PostgreSQL Flexible Server with pgvector
 ```bash
 az postgres flexible-server create \
-  --resource-group gruve-rg \
-  --name gruve-postgres \
-  --admin-user gruve \
+  --resource-group ai-nexus-rg \
+  --name ai-nexus-postgres \
+  --admin-user nexus \
   --admin-password <choose-a-strong-password> \
-  --database-name gruve_vectors \
+  --database-name nexus_vectors \
   --tier Burstable --sku-name Standard_B1ms \
   --public-access None
 ```
 Enable the extension (Azure requires allow-listing it first, then creating it):
 ```bash
 az postgres flexible-server parameter set \
-  --resource-group gruve-rg --server-name gruve-postgres \
+  --resource-group ai-nexus-rg --server-name ai-nexus-postgres \
   --name azure.extensions --value vector
 ```
 ```sql
@@ -189,29 +191,29 @@ CREATE EXTENSION IF NOT EXISTS vector;  -- runs automatically on backend startup
 
 ### 3.3 Secrets
 ```bash
-az keyvault create --name gruve-kv --resource-group gruve-rg
-az keyvault secret set --vault-name gruve-kv --name anthropic-api-key --value "sk-ant-..."
-az keyvault secret set --vault-name gruve-kv --name postgres-url --value "postgresql://gruve:<password>@gruve-postgres.postgres.database.azure.com:5432/gruve_vectors"
+az keyvault create --name ai-nexus-kv --resource-group ai-nexus-rg
+az keyvault secret set --vault-name ai-nexus-kv --name anthropic-api-key --value "sk-ant-..."
+az keyvault secret set --vault-name ai-nexus-kv --name postgres-url --value "postgresql://nexus:<password>@ai-nexus-postgres.postgres.database.azure.com:5432/nexus_vectors"
 ```
 
 ### 3.4 Container Apps environment + services
 ```bash
-az containerapp env create --name gruve-env --resource-group gruve-rg --location eastus
+az containerapp env create --name ai-nexus-env --resource-group ai-nexus-rg --location eastus
 
 # Internal-only — no public ingress
 az containerapp create \
-  --name python-service --resource-group gruve-rg --environment gruve-env \
-  --image gruveacr.azurecr.io/gruve-python-service:latest \
+  --name python-service --resource-group ai-nexus-rg --environment ai-nexus-env \
+  --image ainexusacr.azurecr.io/ai-nexus-python-service:latest \
   --ingress internal --target-port 8001
 
 # Public — this is the API clients/frontend hit
 az containerapp create \
-  --name backend --resource-group gruve-rg --environment gruve-env \
-  --image gruveacr.azurecr.io/gruve-backend:latest \
+  --name backend --resource-group ai-nexus-rg --environment ai-nexus-env \
+  --image ainexusacr.azurecr.io/ai-nexus-backend:latest \
   --ingress external --target-port 4000 \
   --env-vars PORT=4000 PYTHON_EMBEDDING_SERVICE_URL=http://python-service \
-  --secrets anthropic-api-key=keyvaultref:https://gruve-kv.vault.azure.net/secrets/anthropic-api-key,identityref:system \
-            postgres-url=keyvaultref:https://gruve-kv.vault.azure.net/secrets/postgres-url,identityref:system \
+  --secrets anthropic-api-key=keyvaultref:https://ai-nexus-kv.vault.azure.net/secrets/anthropic-api-key,identityref:system \
+            postgres-url=keyvaultref:https://ai-nexus-kv.vault.azure.net/secrets/postgres-url,identityref:system \
   --secret-env-vars ANTHROPIC_API_KEY=anthropic-api-key POSTGRES_URL=postgres-url
 ```
 Container Apps gives `backend` an HTTPS URL automatically (e.g.
@@ -221,12 +223,12 @@ Container Apps gives `backend` an HTTPS URL automatically (e.g.
 ```bash
 docker build -f frontend/Dockerfile \
   --build-arg NEXT_PUBLIC_API_BASE_URL=https://backend.<random>.eastus.azurecontainerapps.io \
-  -t gruveacr.azurecr.io/gruve-frontend:latest frontend
-docker push gruveacr.azurecr.io/gruve-frontend:latest
+  -t ainexusacr.azurecr.io/ai-nexus-frontend:latest frontend
+docker push ainexusacr.azurecr.io/ai-nexus-frontend:latest
 
 az containerapp create \
-  --name frontend --resource-group gruve-rg --environment gruve-env \
-  --image gruveacr.azurecr.io/gruve-frontend:latest \
+  --name frontend --resource-group ai-nexus-rg --environment ai-nexus-env \
+  --image ainexusacr.azurecr.io/ai-nexus-frontend:latest \
   --ingress external --target-port 3000
 ```
 
@@ -239,24 +241,24 @@ HTTPS), Cloud SQL for PostgreSQL (database), Secret Manager (API key).
 
 ### 4.1 Push images to Artifact Registry
 ```bash
-gcloud artifacts repositories create gruve --repository-format=docker --location=us-central1
+gcloud artifacts repositories create ai-nexus --repository-format=docker --location=us-central1
 gcloud auth configure-docker us-central1-docker.pkg.dev
 
-docker build -f backend/Dockerfile -t us-central1-docker.pkg.dev/<project-id>/gruve/backend:latest .
-docker build -f python-service/Dockerfile -t us-central1-docker.pkg.dev/<project-id>/gruve/python-service:latest python-service
-docker push us-central1-docker.pkg.dev/<project-id>/gruve/backend:latest
-docker push us-central1-docker.pkg.dev/<project-id>/gruve/python-service:latest
+docker build -f backend/Dockerfile -t us-central1-docker.pkg.dev/<project-id>/ai-nexus/backend:latest .
+docker build -f python-service/Dockerfile -t us-central1-docker.pkg.dev/<project-id>/ai-nexus/python-service:latest python-service
+docker push us-central1-docker.pkg.dev/<project-id>/ai-nexus/backend:latest
+docker push us-central1-docker.pkg.dev/<project-id>/ai-nexus/python-service:latest
 ```
 
 ### 4.2 Cloud SQL for PostgreSQL with pgvector
 ```bash
-gcloud sql instances create gruve-postgres \
+gcloud sql instances create ai-nexus-postgres \
   --database-version=POSTGRES_16 \
   --tier=db-f1-micro \
   --region=us-central1
 
-gcloud sql databases create gruve_vectors --instance=gruve-postgres
-gcloud sql users set-password postgres --instance=gruve-postgres --password=<choose-a-strong-password>
+gcloud sql databases create nexus_vectors --instance=ai-nexus-postgres
+gcloud sql users set-password postgres --instance=ai-nexus-postgres --password=<choose-a-strong-password>
 ```
 Cloud SQL for PostgreSQL 15+ supports `pgvector` directly:
 ```sql
@@ -266,20 +268,20 @@ CREATE EXTENSION IF NOT EXISTS vector;  -- runs automatically on backend startup
 ### 4.3 Secrets
 ```bash
 echo -n "sk-ant-..." | gcloud secrets create anthropic-api-key --data-file=-
-echo -n "postgresql://postgres:<password>@<cloud-sql-connection>/gruve_vectors" | gcloud secrets create postgres-url --data-file=-
+echo -n "postgresql://postgres:<password>@<cloud-sql-connection>/nexus_vectors" | gcloud secrets create postgres-url --data-file=-
 ```
 
 ### 4.4 Deploy python-service (internal only) and backend (public)
 ```bash
 gcloud run deploy python-service \
-  --image us-central1-docker.pkg.dev/<project-id>/gruve/python-service:latest \
+  --image us-central1-docker.pkg.dev/<project-id>/ai-nexus/python-service:latest \
   --region us-central1 --no-allow-unauthenticated --ingress internal \
   --port 8001
 
 gcloud run deploy backend \
-  --image us-central1-docker.pkg.dev/<project-id>/gruve/backend:latest \
+  --image us-central1-docker.pkg.dev/<project-id>/ai-nexus/backend:latest \
   --region us-central1 --allow-unauthenticated --port 4000 \
-  --add-cloudsql-instances <project-id>:us-central1:gruve-postgres \
+  --add-cloudsql-instances <project-id>:us-central1:ai-nexus-postgres \
   --set-env-vars PORT=4000,PYTHON_EMBEDDING_SERVICE_URL=<python-service-internal-url> \
   --set-secrets ANTHROPIC_API_KEY=anthropic-api-key:latest,POSTGRES_URL=postgres-url:latest
 ```
@@ -293,11 +295,11 @@ for the current recommended pattern.
 ```bash
 docker build -f frontend/Dockerfile \
   --build-arg NEXT_PUBLIC_API_BASE_URL=$(gcloud run services describe backend --region us-central1 --format 'value(status.url)') \
-  -t us-central1-docker.pkg.dev/<project-id>/gruve/frontend:latest frontend
-docker push us-central1-docker.pkg.dev/<project-id>/gruve/frontend:latest
+  -t us-central1-docker.pkg.dev/<project-id>/ai-nexus/frontend:latest frontend
+docker push us-central1-docker.pkg.dev/<project-id>/ai-nexus/frontend:latest
 
 gcloud run deploy frontend \
-  --image us-central1-docker.pkg.dev/<project-id>/gruve/frontend:latest \
+  --image us-central1-docker.pkg.dev/<project-id>/ai-nexus/frontend:latest \
   --region us-central1 --allow-unauthenticated --port 3000
 ```
 

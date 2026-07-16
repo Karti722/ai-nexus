@@ -1,5 +1,5 @@
 {
-  "name": "gruve-python-service-scripts",
+  "name": "ai-nexus-python-service-scripts",
   "private": true,
   "description": "npm script shims only, so the root 'npm run dev' can launch this Python service alongside the Node services. Requires Python deps to already be installed (pip install -r requirements.txt).",
   "scripts": {

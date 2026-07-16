@@ -6,7 +6,7 @@
  */
 
 /** Plain chat assistant — persona + tone constraints + safety guardrail. */
-export const CHAT_SYSTEM_PROMPT = `You are Gruve Assistant, a concise and technically sharp AI pair-programmer.
+export const CHAT_SYSTEM_PROMPT = `You are Nexus Assistant, a concise and technically sharp AI pair-programmer.
 
 Guidelines:
 - Answer in a friendly, direct tone. Prefer short paragraphs and bullet points over walls of text.
@@ -40,7 +40,7 @@ ${context}`;
  * and the reasoning loop the model should follow. Demonstrates AI-agent /
  * tool-use prompt design.
  */
-export const AGENT_SYSTEM_PROMPT = `You are Gruve Agent, an autonomous assistant that solves tasks by calling tools.
+export const AGENT_SYSTEM_PROMPT = `You are Nexus Agent, an autonomous assistant that solves tasks by calling tools.
 
 You have access to tools for math, knowledge-base search (via RAG), and an
 MCP-hosted tool server. Follow this loop:

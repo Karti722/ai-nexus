@@ -1,9 +1,11 @@
-# Gruve AI Vibe Coding Demo — Codebase Guide
+# AI Nexus — Codebase Guide
 
-A small full-stack application built to demonstrate, in working code, every concept listed in
-Gruve's **AI Vibe Coding Engineer** job posting:
+**AI Nexus** is a small full-stack application built to demonstrate, in working code, the core
+concepts behind modern AI engineering — not slides, not a tutorial, a real running system. It's
+meant to work for two audiences at once: engineers evaluating the implementation, and newcomers
+who want to see how LLMs, RAG, agents, and MCP actually fit together by using them directly.
 
-| Job posting concept | Where it lives in this repo |
+| Concept | Where it lives in this repo |
 |---|---|
 | Large Language Models (LLMs) | `backend/src/llm/` — Anthropic Claude integration + prompt templates |
 | Retrieval-Augmented Generation (RAG) | `backend/src/rag/` + `/rag` page |
@@ -16,7 +18,7 @@ Gruve's **AI Vibe Coding Engineer** job posting:
 | React/Next.js | `frontend/` |
 | REST APIs & microservices architecture | Express API in `backend/`, FastAPI service in `python-service/`, communicating over HTTP |
 | Docker | a `Dockerfile` per service + root `docker-compose.yml` |
-| Git/GitHub | plain git repo, `.gitignore` provided (run `git init` if you want version control) |
+| Git/GitHub | tracked in git with a full commit history and a GitHub remote; `.gitignore` provided |
 
 The app runs **with or without** an Anthropic API key. Without one, every request still flows
 through the real pipeline (routing, prompt templates, retrieval, tool-calling) — only the final
@@ -28,7 +30,7 @@ never mistaken for a live answer.
 ## 1. Directory structure
 
 ```
-gruve-app/
+ai-nexus/
 ├── codebase.md                    # this file
 ├── deployment.md                  # how to deploy this app to AWS / Azure / GCP
 ├── package.json                   # root orchestration scripts (npm run dev, npm run stop, etc.)
@@ -82,7 +84,7 @@ gruve-app/
 │   ├── package.json
 │   ├── tsconfig.json
 │   └── src/
-│       └── index.ts               # exposes get_current_time, get_weather, list_job_concepts
+│       └── index.ts               # exposes get_current_time, get_weather, list_ai_concepts
 │
 ├── python-service/                # Python + FastAPI embeddings microservice
 │   ├── requirements.txt
@@ -191,7 +193,7 @@ A separate Node process, deliberately decoupled from the Express backend, speaki
 Context Protocol's JSON-RPC framing over stdio — exactly how it would plug into Claude Desktop or
 Claude Code. It uses the SDK's low-level `Server` API with plain JSON-Schema tool definitions
 (the same schema shape Anthropic's tool-use API expects) and exposes three tools:
-`get_current_time`, `get_weather` (mock data, deterministic per city), and `list_job_concepts`.
+`get_current_time`, `get_weather` (mock data, deterministic per city), and `list_ai_concepts`.
 
 ### `python-service/` — the Python microservice
 A minimal FastAPI app with one real endpoint, `POST /embed`, that turns text into embedding
@@ -315,17 +317,17 @@ Docker Compose path with `docker compose down`, which stops everything including
 | `npm run build --prefix frontend` | Production Next.js build |
 | `npm run build --prefix mcp-server` | Compile the MCP server |
 | `python -m uvicorn app.main:app --reload --port 8001` (run from `python-service/`) | Run the embeddings service directly |
-| `docker exec gruve-postgres psql -U gruve -d gruve_vectors` | Open a `psql` shell directly against the vector store |
+| `docker exec ai-nexus-postgres psql -U nexus -d nexus_vectors` | Open a `psql` shell directly against the vector store |
 
 ---
 
 ## 5. Demo — what you'll see when you run it
 
-**Landing page (`/`)** — a dark, purple-accented overview page: a headline ("One small full-stack
-app, every concept from the job posting"), two CTA buttons ("Try the chat demo", "Watch an agent
-think"), a 2×3 grid of concept cards (LLM Chat, RAG, AI Agents + Tool Use, Model Context Protocol,
-Polyglot Microservices, Full-Stack + Containers) each with a short description and topic pills,
-and a callout card explaining the mock-mode fallback.
+**Landing page (`/`)** — a dark, purple-accented overview page: a headline ("See how LLMs, RAG,
+agents, and MCP actually work"), two CTA buttons ("Try the chat demo", "Watch an agent think"), a
+2×3 grid of concept cards (LLM Chat, RAG, AI Agents + Tool Use, Model Context Protocol, Polyglot
+Microservices, Full-Stack + Containers) each with a short description and topic pills, and a
+callout card explaining the mock-mode fallback.
 
 **LLM Chat (`/chat`)** — a chat window with a message history, an input box, and a "MOCK MODE" /
 "LIVE · Anthropic" badge in the corner that reflects the backend's actual mode. Type a message and

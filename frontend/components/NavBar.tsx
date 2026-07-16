@@ -18,7 +18,7 @@ export function NavBar() {
       <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
         <Link href="/" className="flex items-center gap-2 font-semibold tracking-tight">
           <span className="inline-block h-2.5 w-2.5 rounded-full bg-brand-400" />
-          Gruve AI Demo
+          AI Nexus
         </Link>
         <nav className="flex gap-1">
           {LINKS.map((link) => {

@@ -1,27 +1,29 @@
+name: ai-nexus
+
 services:
   # Vector database (pgvector extension on Postgres). Exposed on the host at
   # 5433, not the default 5432, so it won't clash with any other Postgres
   # instance you might already have running locally.
   postgres:
     image: pgvector/pgvector:pg16
-    container_name: gruve-postgres
+    container_name: ai-nexus-postgres
     environment:
-      - POSTGRES_USER=gruve
-      - POSTGRES_PASSWORD=gruve
-      - POSTGRES_DB=gruve_vectors
+      - POSTGRES_USER=nexus
+      - POSTGRES_PASSWORD=nexus
+      - POSTGRES_DB=nexus_vectors
     ports:
       - "5433:5432"
     volumes:
-      - gruve-postgres-data:/var/lib/postgresql/data
+      - ai-nexus-postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U gruve -d gruve_vectors"]
+      test: ["CMD-SHELL", "pg_isready -U nexus -d nexus_vectors"]
       interval: 5s
       timeout: 5s
       retries: 10
 
   python-service:
     build: ./python-service
-    container_name: gruve-embeddings
+    container_name: ai-nexus-embeddings
     ports:
       - "8001:8001"
     environment:
@@ -31,7 +33,7 @@ services:
     build:
       context: .
       dockerfile: backend/Dockerfile
-    container_name: gruve-backend
+    container_name: ai-nexus-backend
     ports:
       - "4000:4000"
     environment:
@@ -40,7 +42,7 @@ services:
       - ANTHROPIC_MODEL=${ANTHROPIC_MODEL:-claude-sonnet-5}
       - PYTHON_EMBEDDING_SERVICE_URL=http://python-service:8001
       - MCP_SERVER_ENTRY=/app/mcp-server/dist/index.js
-      - POSTGRES_URL=postgresql://gruve:gruve@postgres:5432/gruve_vectors
+      - POSTGRES_URL=postgresql://nexus:nexus@postgres:5432/nexus_vectors
     depends_on:
       python-service:
         condition: service_started
@@ -51,7 +53,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: gruve-frontend
+    container_name: ai-nexus-frontend
     ports:
       - "3000:3000"
     environment:
@@ -60,4 +62,4 @@ services:
       - backend
 
 volumes:
-  gruve-postgres-data:
+  ai-nexus-postgres-data:

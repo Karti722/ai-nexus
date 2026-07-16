@@ -30,7 +30,7 @@ async function connect(): Promise<Client | null> {
       args: [entry],
     });
 
-    const client = new Client({ name: "gruve-agent", version: "1.0.0" }, { capabilities: {} });
+    const client = new Client({ name: "ai-nexus-agent", version: "1.0.0" }, { capabilities: {} });
     await client.connect(transport);
     console.log(`[mcp] connected to MCP server at ${entry}`);
     return client;

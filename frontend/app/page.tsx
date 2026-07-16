@@ -44,15 +44,16 @@ export default function HomePage() {
   return (
     <div className="space-y-12">
       <section className="space-y-4">
-        <p className="pill inline-block">Gruve · AI Vibe Coding Engineer — concept demo</p>
+        <p className="pill inline-block">AI Nexus — interactive AI concepts</p>
         <h1 className="text-4xl font-bold tracking-tight text-white">
-          One small full-stack app, every concept from the job posting.
+          See how LLMs, RAG, agents, and MCP actually work.
         </h1>
         <p className="max-w-2xl text-white/70">
-          This app is a working demonstration of LLM integration, RAG, prompt engineering, AI
-          agents, MCP servers, vector embeddings, and a polyglot microservices architecture —
-          shipped as a real Next.js + Express + FastAPI codebase, not slides. Explore each concept
-          live using the nav above.
+          This isn't slides or a tutorial — it's a real, running full-stack app where you can watch
+          an AI agent reason step by step, see RAG retrieve real sources before answering, and call
+          tools over Anthropic's Model Context Protocol (MCP), live in your browser. Built for
+          anyone curious about modern AI engineering, from complete beginners to engineers
+          evaluating the stack.
         </p>
         <div className="flex flex-wrap gap-3 pt-2">
           <Link href="/chat" className="btn-primary">

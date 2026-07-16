@@ -1,5 +1,5 @@
 """
-Gruve embeddings microservice.
+AI Nexus embeddings microservice.
 
 Demonstrates: Python, REST APIs, and a polyglot microservices architecture
 (this FastAPI service is called over HTTP by the Node.js backend to keep
@@ -15,7 +15,7 @@ from pydantic import BaseModel
 
 from app.embeddings import EMBEDDING_DIMS, embed_batch
 
-app = FastAPI(title="Gruve Embeddings Service", version="1.0.0")
+app = FastAPI(title="AI Nexus Embeddings Service", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,

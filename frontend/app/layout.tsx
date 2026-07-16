@@ -3,9 +3,9 @@ import { NavBar } from "@/components/NavBar";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Gruve AI Vibe Coding Demo",
+  title: "AI Nexus",
   description:
-    "Full-stack demo of LLMs, RAG, prompt engineering, AI agents, and MCP — built for the Gruve AI Vibe Coding Engineer role.",
+    "A hands-on, full-stack tour of core AI engineering concepts — LLMs, RAG, prompt engineering, AI agents, and MCP — for engineers and newcomers alike.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

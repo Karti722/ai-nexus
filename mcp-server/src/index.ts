@@ -17,13 +17,13 @@ import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprot
  */
 
 const server = new Server(
-  { name: "gruve-mcp-server", version: "1.0.0" },
+  { name: "ai-nexus-mcp-server", version: "1.0.0" },
   { capabilities: { tools: {} } }
 );
 
 const WEATHER_CONDITIONS = ["sunny", "partly cloudy", "overcast", "light rain", "clear skies"];
 
-const JOB_CONCEPTS = [
+const AI_CONCEPTS = [
   "Large Language Models (LLMs)",
   "Retrieval-Augmented Generation (RAG)",
   "Prompt engineering",
@@ -53,9 +53,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
       },
     },
     {
-      name: "list_job_concepts",
-      description:
-        "Lists the AI/engineering concepts this demo app was built to showcase, straight from the job posting it targets.",
+      name: "list_ai_concepts",
+      description: "Lists the core AI/engineering concepts this demo app is built to showcase.",
       inputSchema: { type: "object", properties: {} },
     },
   ],
@@ -80,9 +79,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     };
   }
 
-  if (name === "list_job_concepts") {
+  if (name === "list_ai_concepts") {
     return {
-      content: [{ type: "text", text: JOB_CONCEPTS.map((c, i) => `${i + 1}. ${c}`).join("\n") }],
+      content: [{ type: "text", text: AI_CONCEPTS.map((c, i) => `${i + 1}. ${c}`).join("\n") }],
     };
   }
 
@@ -100,7 +99,7 @@ function hashString(value: string): number {
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  console.error("[mcp-server] gruve-mcp-server running on stdio");
+  console.error("[mcp-server] ai-nexus-mcp-server running on stdio");
 }
 
 main().catch((err) => {

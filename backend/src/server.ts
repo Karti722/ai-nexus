@@ -23,7 +23,7 @@ async function main() {
   await seedKnowledgeBaseIfEmpty();
 
   app.listen(config.port, () => {
-    console.log(`\n[server] Gruve backend listening on http://localhost:${config.port}`);
+    console.log(`\n[server] AI Nexus backend listening on http://localhost:${config.port}`);
     console.log(`[server] LLM mode: ${config.isMockMode ? "MOCK (no ANTHROPIC_API_KEY set)" : "LIVE (Anthropic)"}\n`);
   });
 }

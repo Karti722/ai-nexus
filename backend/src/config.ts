@@ -24,5 +24,5 @@ export const config = {
   /** pgvector-enabled Postgres instance backing the RAG vector store. Port
    * 5433 (not 5432) so it doesn't clash with a default local Postgres. */
   postgresUrl:
-    process.env.POSTGRES_URL ?? "postgresql://gruve:gruve@localhost:5433/gruve_vectors",
+    process.env.POSTGRES_URL ?? "postgresql://nexus:nexus@localhost:5433/nexus_vectors",
 };

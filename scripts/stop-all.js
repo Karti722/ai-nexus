@@ -90,7 +90,7 @@ function pidsOfLingeringWatchers() {
 }
 
 function stopAll() {
-  console.log(`Stopping Gruve demo services (checking ports: ${PORTS.join(", ")})...`);
+  console.log(`Stopping AI Nexus services (checking ports: ${PORTS.join(", ")})...`);
 
   const toKill = new Set();
   for (const port of PORTS) {
