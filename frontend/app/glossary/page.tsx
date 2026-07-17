@@ -10,7 +10,16 @@ const TERMS = [
   {
     term: "API",
     definition:
-      "A defined way for two programs to talk to each other over a network without either needing to know how the other is built internally. See Chapter 6.",
+      "A defined way for two programs to talk to each other over a network without either needing to know how the other is built internally. See Chapter 9.",
+  },
+  {
+    term: "Byte-Pair Encoding (BPE)",
+    definition:
+      "The subword tokenization algorithm behind every modern LLM's tokenizer: starting from individual characters, the most frequent adjacent pair anywhere in a training corpus is merged into a new symbol, repeatedly, until common words become single tokens and rare ones fall back to smaller pieces. See Chapter 5.",
+    source: {
+      label: "Sennrich, Haddow & Birch, \"Neural Machine Translation of Rare Words with Subword Units\" (2015)",
+      href: "https://arxiv.org/abs/1508.07909",
+    },
   },
   {
     term: "Cosine Similarity",
@@ -48,7 +57,7 @@ const TERMS = [
   {
     term: "HNSW",
     definition:
-      "Hierarchical Navigable Small World — an indexing structure that lets a vector database skip most of its stored data and still find near-perfect matches quickly. See Chapter 6.",
+      "Hierarchical Navigable Small World — an indexing structure that lets a vector database skip most of its stored data and still find near-perfect matches quickly. See Chapter 9.",
     source: {
       label: "Malkov & Yashunin, \"Efficient and Robust Approximate Nearest Neighbor Search Using HNSW Graphs\" (2016)",
       href: "https://arxiv.org/abs/1603.09320",
@@ -66,7 +75,7 @@ const TERMS = [
   {
     term: "Microservices",
     definition:
-      "An architecture that splits an application into small, independent programs, each with one job, communicating over the network instead of sharing internal state. See Chapter 6.",
+      "An architecture that splits an application into small, independent programs, each with one job, communicating over the network instead of sharing internal state. See Chapter 9.",
   },
   {
     term: "ReAct",
@@ -84,9 +93,23 @@ const TERMS = [
     },
   },
   {
+    term: "ROUGE-L",
+    definition:
+      "An evaluation metric that scores a candidate answer against a reference by the longest sequence of words they share, in order — a standard, cheap-to-compute signal used as one part of a larger evaluation pipeline. See Chapter 7.",
+    source: {
+      label: "Lin, \"ROUGE: A Package for Automatic Evaluation of Summaries\" (2004)",
+      href: "https://aclanthology.org/W04-1013/",
+    },
+  },
+  {
+    term: "Semantic Cache",
+    definition:
+      "A cache that reuses a stored result whenever a new request's embedding is close enough (by cosine similarity) to a previous one, instead of requiring an exact text match — catching paraphrased repeat questions a plain cache would miss. See Chapter 6.",
+  },
+  {
     term: "Token",
     definition:
-      "A small piece of text — often a whole word or a few characters — that is the basic unit a language model reads and generates, one at a time. See Chapter 1.",
+      "A small piece of text — often a whole word or a few characters — that is the basic unit a language model reads and generates, one at a time, and the unit every hosted model bills by. See Chapters 1 and 5.",
     source: {
       label: "Vaswani et al., \"Attention Is All You Need\" (2017)",
       href: "https://arxiv.org/abs/1706.03762",
@@ -119,7 +142,7 @@ const TERMS = [
   {
     term: "Vector Database",
     definition:
-      "A database built to store embeddings and quickly find the ones most similar to a given query, typically using an approximate index like HNSW at scale. See Chapters 2, 5, and 6.",
+      "A database built to store embeddings and quickly find the ones most similar to a given query, typically using an approximate index like HNSW at scale. See Chapters 2, 8, and 9.",
     source: {
       label: "pgvector — open-source vector search for Postgres",
       href: "https://github.com/pgvector/pgvector",
@@ -132,7 +155,7 @@ export default function GlossaryPage() {
     <div className="space-y-10">
       <TextbookPage eyebrow="Reference" title="Glossary of Key Terms" pageNumber="Glossary">
         <p>
-          Every term introduced across the seven chapters of this tutorial, gathered in one place.
+          Every term introduced across the ten chapters of this tutorial, gathered in one place.
           Each entry links back to the chapter where it's explained in full, and to a real source
           where one exists.
         </p>

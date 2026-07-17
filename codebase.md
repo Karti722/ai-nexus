@@ -3,7 +3,8 @@
 **AI Nexus** is a small full-stack application built to demonstrate, in working code, the core
 concepts behind modern AI engineering — not slides, not a tutorial, a real running system. It's
 meant to work for two audiences at once: engineers evaluating the implementation, and newcomers
-who want to see how LLMs, RAG, agents, and MCP actually fit together by using them directly.
+who want to see how LLMs, RAG, agents, MCP, and the applied engineering around them actually fit
+together by using them directly.
 
 | Concept | Where it lives in this repo |
 |---|---|
@@ -13,7 +14,11 @@ who want to see how LLMs, RAG, agents, and MCP actually fit together by using th
 | AI agents & tool use | `backend/src/agent/` + `/agent` page |
 | Model Context Protocol (MCP) | `mcp-server/` (a real MCP server) + `backend/src/agent/mcpClient.ts` (a real MCP client) |
 | Vector databases & embeddings | `backend/src/rag/vectorStore.ts` (real pgvector + HNSW index), `backend/src/rag/embeddingsClient.ts` |
-| Python | `python-service/` (FastAPI embeddings microservice) |
+| Automatic summarization | `python-service/app/summarizer.py` (TextRank) + `/summarize` page |
+| Tokenization & cost estimation | `python-service/app/tokenizer.py` (from-scratch BPE) + `/tokenizer` page |
+| Semantic caching | `python-service/app/semantic_cache.py` + `/cache` page |
+| Evaluating AI outputs | `python-service/app/eval.py` + `/eval` page |
+| Python | `python-service/` (FastAPI microservice — see section 2 for what it does and why) |
 | JavaScript/TypeScript, Node.js | `backend/`, `mcp-server/` |
 | React/Next.js | `frontend/` |
 | REST APIs & microservices architecture | Express API in `backend/`, FastAPI service in `python-service/`, communicating over HTTP |
@@ -27,7 +32,67 @@ never mistaken for a live answer.
 
 ---
 
-## 1. Directory structure
+## 1. Why split it this way: Next.js app + Node orchestrator + Python microservice
+
+This app is three services, not one, and not an arbitrary three — each boundary exists for a
+specific reason, and the split is itself one of the concepts the app teaches (see the
+Microservices glossary entry and Chapter 9).
+
+**What the Next.js app is for.** It renders pages and nothing else. There is no business logic in
+`frontend/` — no prompts, no retrieval logic, no algorithm implementations, not even light data
+transformation beyond typed fetch wrappers in `lib/api.ts`. Every "Try it yourself" section is a
+thin form: collect input, `POST` it to the backend, render whatever JSON comes back. This is
+deliberate, not an oversight — it means the entire user-facing surface can be reasoned about,
+tested, and redesigned (this app went through several full visual redesigns — see Chapter 10)
+without touching a single line of the logic it's displaying.
+
+**What the Node/Express backend is for.** It's the orchestrator: the one place that knows what a
+"chat request" or an "agent run" actually means. Every prompt template lives here
+(`src/prompts/systemPrompts.ts`), the agent's think-act-observe loop lives here
+(`src/agent/agentLoop.ts`), and it's the only service that talks to the Anthropic API and to the
+MCP tool server. It's written in Node/TypeScript rather than Python for a concrete reason, not just
+convention: Anthropic's SDK, the MCP SDK, and this app's own frontend are all TypeScript, so keeping
+the orchestration layer in the same language as the tools it coordinates avoids a second
+serialization boundary between "the code that talks to Claude" and "the code that talks to MCP."
+
+**What the Python microservice is for — and, as importantly, what it isn't for.** It does not
+orchestrate anything, hold conversation state, call the LLM, or know what a "chat" or "agent" is.
+Every one of its endpoints is a pure function's worth of responsibility: text in, a number or a
+small structured result out — `/embed` (text → vector), `/summarize` (text → ranked sentences +
+keywords + readability), `/tokenize` (text → tokens + cost estimate), `/cache-sim` (a list of
+queries → hit/miss trace), `/evaluate` (two strings → similarity scores). None of them need to
+know about any other endpoint, which is exactly the property that makes them safe to group into one
+small service instead of five.
+
+**Why a separate service at all, instead of writing all of this directly in the Node backend?**
+Two reasons, one practical and one pedagogical. Practically, Python is where the ecosystem for this
+kind of text/ML-adjacent processing actually lives — even though this app deliberately avoids heavy
+dependencies (no downloaded models, no GPU), the moment any of these features needed something like
+`numpy`, `scikit-learn`, or a real embeddings model, that upgrade is a one-file change inside
+`python-service/`, not a rewrite. Pedagogically, this is exactly the shape real applied-AI teams use
+in production: a product/orchestration backend in whatever language the rest of the product is
+built in, and a Python service (sometimes owned by a separate ML/data team entirely) for anything
+that benefits from that ecosystem — see Chapter 8 for real companies running this same split at
+much larger scale.
+
+**Why not the opposite — put everything in Python, including the orchestration?** Because the
+orchestrator's job (routing between the LLM, retrieval, and tools; holding the agent loop; managing
+prompts) is fundamentally about *coordinating* other services, and this app's other services — the
+Anthropic SDK, the MCP client/server — are already TypeScript. Splitting orchestration into Python
+would mean either duplicating that tooling in a second language or adding a network hop just to
+call back into Node, for no benefit. The Python service earns its place by doing self-contained
+work Node has no particular advantage at; it doesn't earn a role coordinating everything else.
+
+**What this buys the app in practice:** each service can be built, tested, restarted, and deployed
+independently (see `deployment.md` — `python-service` is never even publicly exposed in production,
+since only the backend needs to reach it); a crash or slowdown in text-processing code can't take
+down chat or the agent loop, and vice versa; and the whole thing is a genuine, runnable example of
+the "polyglot microservices" pattern this app also has a glossary entry and a dedicated architecture
+chapter for, rather than an in-name-only label on what's actually a single monolith.
+
+---
+
+## 2. Directory structure
 
 ```
 ai-nexus/
@@ -73,10 +138,22 @@ ai-nexus/
 │       │   ├── tools.ts           # local tools: calculator, search_knowledge_base
 │       │   ├── mcpClient.ts       # MCP client — spawns & talks to mcp-server/
 │       │   └── agentLoop.ts       # the think → act → observe → answer loop
+│       ├── summarize/
+│       │   └── summarizeClient.ts # calls python-service's /summarize
+│       ├── tokenizer/
+│       │   └── tokenizerClient.ts # calls python-service's /tokenize
+│       ├── cache/
+│       │   └── cacheClient.ts     # calls python-service's /cache-sim
+│       ├── eval/
+│       │   └── evalClient.ts      # calls python-service's /evaluate
 │       ├── routes/
 │       │   ├── chat.route.ts      # POST /api/chat
 │       │   ├── rag.route.ts       # POST /api/rag/query
-│       │   └── agent.route.ts     # POST /api/agent/run
+│       │   ├── agent.route.ts     # POST /api/agent/run
+│       │   ├── summarize.route.ts # POST /api/summarize
+│       │   ├── tokenizer.route.ts # POST /api/tokenize
+│       │   ├── cache.route.ts     # POST /api/cache-sim
+│       │   └── eval.route.ts      # POST /api/evaluate
 │       └── utils/
 │           └── errors.ts          # extracts a real, user-facing message from thrown errors
 │
@@ -86,13 +163,19 @@ ai-nexus/
 │   └── src/
 │       └── index.ts               # exposes get_current_time, get_weather, list_ai_concepts
 │
-├── python-service/                # Python + FastAPI embeddings microservice
+├── python-service/                # Python + FastAPI microservice
 │   ├── requirements.txt
 │   ├── Dockerfile
 │   ├── package.json               # npm script shims so root `npm run dev` can launch it too
 │   └── app/
-│       ├── main.py                # FastAPI app: GET /health, POST /embed
-│       └── embeddings.py          # deterministic hashing embedding (swappable for a real model)
+│       ├── main.py                # FastAPI app: /health, /embed, /summarize, /tokenize, /cache-sim, /evaluate
+│       ├── embeddings.py          # deterministic hashing embedding (swappable for a real model)
+│       ├── summarizer.py          # TextRank extractive summarization
+│       ├── keywords.py            # term-frequency keyword extraction
+│       ├── readability.py         # Flesch / Flesch-Kincaid readability scoring
+│       ├── tokenizer.py           # from-scratch byte-pair encoding + per-model cost estimation
+│       ├── semantic_cache.py      # embedding-similarity cache simulation
+│       └── eval.py                # exact-match / ROUGE-L / semantic-similarity eval harness
 │
 └── frontend/                      # Next.js 14 (App Router) + TypeScript + Tailwind
     ├── package.json
@@ -100,25 +183,38 @@ ai-nexus/
     ├── tailwind.config.ts
     ├── Dockerfile
     ├── lib/
-    │   └── api.ts                 # typed fetch wrappers around the backend REST API
+    │   └── api.ts                 # typed fetch wrappers around every backend endpoint
     ├── components/
     │   ├── NavBar.tsx
     │   ├── ConceptCard.tsx
     │   ├── ChatWindow.tsx
     │   ├── SourceCitation.tsx
-    │   └── AgentTrace.tsx
+    │   ├── AgentTrace.tsx
+    │   ├── TextbookPage.tsx
+    │   ├── Analogy.tsx
+    │   ├── CaseStudy.tsx
+    │   ├── Sources.tsx
+    │   └── ArchitectureDiagram.tsx
     └── app/
-        ├── layout.tsx             # shared shell (nav + page container)
-        ├── globals.css            # Tailwind + shared utility classes
-        ├── page.tsx                # landing page — concept overview
-        ├── chat/page.tsx           # LLM chat demo
-        ├── rag/page.tsx            # RAG demo
-        └── agent/page.tsx          # AI agent + MCP demo
+        ├── layout.tsx              # shared shell (nav + page container)
+        ├── globals.css             # Tailwind + shared utility classes
+        ├── page.tsx                 # landing page — table of contents
+        ├── chat/page.tsx            # Ch.1 — LLM chat demo
+        ├── rag/page.tsx             # Ch.2 — RAG demo
+        ├── agent/page.tsx           # Ch.3 — AI agent + MCP demo
+        ├── summarize/page.tsx       # Ch.4 — extractive summarization demo
+        ├── tokenizer/page.tsx       # Ch.5 — tokenization & cost demo
+        ├── cache/page.tsx           # Ch.6 — semantic caching demo
+        ├── eval/page.tsx            # Ch.7 — AI-output evaluation demo
+        ├── enterprise/page.tsx      # Ch.8 — real-world case studies
+        ├── architecture/page.tsx    # Ch.9 — this system's own architecture
+        ├── building/page.tsx        # Ch.10 — how this tutorial was built
+        └── glossary/page.tsx        # reference — every term, linked back to its chapter
 ```
 
 ---
 
-## 2. File-by-file explanation
+## 3. File-by-file explanation
 
 ### Root
 - **`package.json`** — orchestration only. `npm run dev` runs `scripts/dev.js`, which drives
@@ -135,14 +231,14 @@ ai-nexus/
   [Neon](https://neon.tech) for a free `pgvector`-enabled Postgres) for demo/portfolio use.
 - **`scripts/dev.js`** — powers `npm run dev`. Drives `concurrently` programmatically (rather than
   shelling out to its CLI) specifically so it can run `stop-all.js`'s cleanup automatically when
-  `npm run dev` exits or is interrupted — see the "Stopping everything" note in section 4 for the
+  `npm run dev` exits or is interrupted — see the "Stopping everything" note in section 5 for the
   reliability caveat on Windows.
 - **`scripts/stop-all.js`** — powers `npm run stop` (and is what `dev.js` calls internally on
   exit). Finds and kills anything listening on this app's ports plus any lingering
   mcp-server/dev.js watcher processes, so a half-killed `npm run dev` (common on Windows — see
-  section 4) doesn't block the next one from starting.
+  section 5) doesn't block the next one from starting.
 
-### `backend/` — the Express REST API
+### `backend/` — the Express REST API (the orchestrator — see section 1)
 - **`src/config.ts`** — loads `.env` once and exposes a typed `config` object, including the
   `isMockMode` getter that everything else keys off of, and `frontendUrls` (parsed from the
   comma-separated `FRONTEND_URL` env var) that scopes the CORS policy in `server.ts`.
@@ -159,7 +255,7 @@ ai-nexus/
 - **`src/rag/`**
   - `chunker.ts` — splits a markdown file into ~600-character overlapping chunks along paragraph
     boundaries.
-  - `embeddingsClient.ts` — POSTs text to the Python embedding service; if that service is
+  - `embeddingsClient.ts` — POSTs text to the Python service's `/embed`; if that service is
     unreachable, transparently falls back to an in-process deterministic hashing embedding (same
     algorithm the Python service itself falls back to), so RAG never hard-fails.
   - `vectorStore.ts` — a real vector database: Postgres + the **pgvector** extension, with a
@@ -178,10 +274,17 @@ ai-nexus/
     the MCP server hasn't been built yet.
   - `agentLoop.ts` — the ReAct loop: ask the LLM for a step, execute a tool if requested, feed the
     result back, repeat (capped at 4 steps), return the full trace plus final answer.
-- **`src/routes/`** — thin Express handlers (`chat.route.ts`, `rag.route.ts`, `agent.route.ts`)
-  that validate input, call into the modules above, and shape the JSON response. Each catch block
-  uses `utils/errors.ts` to surface the real failure reason (e.g. an Anthropic billing error)
-  instead of a generic message, so failures are self-explanatory directly in the UI.
+- **`src/summarize/summarizeClient.ts`**, **`src/tokenizer/tokenizerClient.ts`**,
+  **`src/cache/cacheClient.ts`**, **`src/eval/evalClient.ts`** — one thin client per Python-service
+  endpoint, all following the same shape as `embeddingsClient.ts`'s HTTP call: POST, translate the
+  Python service's `snake_case` JSON into the rest of the app's `camelCase` convention, throw a
+  clear error on failure. Unlike embeddings, none of these have an in-process fallback — each is a
+  standalone demo feature nothing else in the app depends on, so a clear error is preferable to a
+  silently degraded response.
+- **`src/routes/`** — thin Express handlers that validate input, call into the modules above, and
+  shape the JSON response. Each catch block uses `utils/errors.ts` to surface the real failure
+  reason (e.g. an Anthropic billing error) instead of a generic message, so failures are
+  self-explanatory directly in the UI.
 - **`src/utils/errors.ts`** — pulls the specific message out of Anthropic API errors (or falls back
   to a normal `Error.message`) so route error responses explain what actually went wrong.
 - **`src/server.ts`** — wires up Express, CORS (scoped to `config.frontendUrls`, not wide open —
@@ -198,23 +301,50 @@ Claude Code. It uses the SDK's low-level `Server` API with plain JSON-Schema too
 (the same schema shape Anthropic's tool-use API expects) and exposes three tools:
 `get_current_time`, `get_weather` (mock data, deterministic per city), and `list_ai_concepts`.
 
-### `python-service/` — the Python microservice
-A minimal FastAPI app with one real endpoint, `POST /embed`, that turns text into embedding
-vectors using a dependency-free deterministic hashing scheme (`app/embeddings.py`) — no model
-download required. The file's docstring shows exactly how to swap in a real
-`sentence-transformers` model or an OpenAI embeddings call without touching any other service.
+### `python-service/` — the Python microservice (see section 1 for why it exists as its own service)
+A FastAPI app with six real endpoints, none of which need any downloaded model, GPU, or API key —
+`pip install -r requirements.txt` is the entire setup, unchanged since this service's first
+endpoint:
+- **`GET /health`** — liveness check.
+- **`POST /embed`** (`embeddings.py`) — turns text into vectors using a dependency-free
+  deterministic hashing scheme. The module's docstring shows exactly how to swap in a real
+  `sentence-transformers` model or an OpenAI embeddings call without touching any other service.
+- **`POST /summarize`** (`summarizer.py`, `keywords.py`, `readability.py`) — real TextRank
+  extractive summarization (a graph/PageRank-style ranking over the sentences' own embeddings),
+  plus term-frequency keyword extraction and Flesch/Flesch-Kincaid readability scoring for both the
+  original text and the generated summary.
+- **`POST /tokenize`** (`tokenizer.py`) — a byte-pair encoding tokenizer trained from scratch, at
+  import time, on a small bundled corpus (real BPE, the same algorithm behind GPT's and Claude's
+  tokenizers, just trained on kilobytes instead of the corpora production tokenizers use), plus a
+  per-model cost estimate at published rates.
+- **`POST /cache-sim`** (`semantic_cache.py`) — replays a list of queries against an in-memory
+  cache keyed by embedding cosine similarity rather than exact text match, reporting which queries
+  would have hit an existing cache entry.
+- **`POST /evaluate`** (`eval.py`) — scores a candidate answer against a reference using exact
+  match, a ROUGE-L longest-common-subsequence overlap score, and embedding-based semantic
+  similarity.
 
-### `frontend/` — the Next.js app
-- **`lib/api.ts`** — typed fetch wrappers for the three backend endpoints; the only place that
-  knows the backend's URL/shape.
+Every algorithm here is implemented from scratch and is honestly scaled down from its production
+equivalent (a tokenizer trained on kilobytes, not terabytes; a hashing embedding, not a neural
+one) rather than faked — see each module's docstring for exactly what it's a real, smaller version
+of, and the citation to the original technique.
+
+### `frontend/` — the Next.js app (the interface — see section 1)
+- **`lib/api.ts`** — typed fetch wrappers for every backend endpoint; the only place that knows
+  the backend's URL/shape. No logic beyond request/response typing lives here.
 - **`components/`** — `ChatWindow` (stateful chat UI), `SourceCitation` (a RAG result card),
-  `AgentTrace` (renders the agent's tool_call/tool_result/final steps as a timeline),
-  `ConceptCard` + `NavBar` (landing page and navigation).
-- **`app/`** — one route per demo: `/` (concept overview), `/chat`, `/rag`, `/agent`.
+  `AgentTrace` (renders the agent's tool_call/tool_result/final steps as a timeline), `ConceptCard`
+  + `NavBar` (landing page and navigation), and the shared "textbook" vocabulary used by every
+  chapter page: `TextbookPage` (the printed-page shell — eyebrow, title, page number),
+  `Analogy` and `CaseStudy` (left-border callout boxes), `Sources` (a citation list), and
+  `ArchitectureDiagram` (Chapter 9's system diagram).
+- **`app/`** — one route per chapter (see the directory tree above for the full chapter-to-route
+  mapping), plus `/` (the table of contents) and `/glossary` (every term, cross-linked to its
+  chapter).
 
 ---
 
-## 3. Setup
+## 4. Setup
 
 ### Prerequisites
 - **Node.js 20+** and npm
@@ -234,7 +364,9 @@ npm run install:all           # installs root, backend, frontend, mcp-server npm
 ```
 (`install:all` runs `pip install -r python-service/requirements.txt`, which needs `python`/`pip`
 on your `PATH`. It also runs `npm install` at the repo root, which is what makes `concurrently`
-— and therefore `npm run dev` — available.)
+— and therefore `npm run dev` — available.) `python-service/requirements.txt` hasn't grown as new
+endpoints were added — every algorithm in `app/` is implemented with the Python standard library
+only, by design (see section 1).
 
 ### Build the MCP server once
 The agent's MCP-tool mode spawns a **compiled** MCP server, so build it once after installing:
@@ -245,7 +377,7 @@ npm run build:mcp
 
 ---
 
-## 4. Running it
+## 5. Running it
 
 ### Step 0 — start the vector database (required for Options A and B)
 ```bash
@@ -264,7 +396,7 @@ seeding needs the database immediately.
 npm run dev
 ```
 This starts, in parallel: the Express backend (`:4000`), the Next.js frontend (`:3000`), the
-Python embeddings service (`:8001`), and an mcp-server watch-build. Open **http://localhost:3000**.
+Python service (`:8001`), and an mcp-server watch-build. Open **http://localhost:3000**.
 
 ### Option B — one service at a time
 ```bash
@@ -319,48 +451,66 @@ Docker Compose path with `docker compose down`, which stops everything including
 | `npm run build --prefix backend` | Compile backend TypeScript to `backend/dist` |
 | `npm run build --prefix frontend` | Production Next.js build |
 | `npm run build --prefix mcp-server` | Compile the MCP server |
-| `python -m uvicorn app.main:app --reload --port 8001` (run from `python-service/`) | Run the embeddings service directly |
+| `python -m uvicorn app.main:app --reload --port 8001` (run from `python-service/`) | Run the Python service directly |
 | `docker exec ai-nexus-postgres psql -U nexus -d nexus_vectors` | Open a `psql` shell directly against the vector store |
 
 ---
 
-## 5. Demo — what you'll see when you run it
+## 6. Demo — what you'll see when you run it
 
-**Landing page (`/`)** — a dark, purple-accented overview page: a headline ("See how LLMs, RAG,
-agents, and MCP actually work"), two CTA buttons ("Try the chat demo", "Watch an agent think"), a
-2×3 grid of concept cards (LLM Chat, RAG, AI Agents + Tool Use, Model Context Protocol, Polyglot
-Microservices, Full-Stack + Containers) each with a short description and topic pills, and a
-callout card explaining the mock-mode fallback.
+**Landing page (`/`)** — a printed-textbook-styled table of contents listing all ten chapters plus
+the glossary, each linking straight to its page.
 
-**LLM Chat (`/chat`)** — a chat window with a message history, an input box, and a "MOCK MODE" /
-"LIVE · Anthropic" badge in the corner that reflects the backend's actual mode. Type a message and
-your bubble appears on the right, the assistant's reply on the left — a live back-and-forth
-conversation with real multi-turn history sent on every request.
+**Chapter 1 — LLM Chat (`/chat`)** — a chat window with a message history, an input box, and a
+"MOCK MODE" / "LIVE · Anthropic" badge in the corner that reflects the backend's actual mode. Type
+a message and your bubble appears on the right, the assistant's reply on the left — a live
+back-and-forth conversation with real multi-turn history sent on every request.
 
-**RAG (`/rag`)** — a question box with three clickable sample questions. Ask something like *"What
-is the Model Context Protocol?"* and you'll see an **Answer** card (with the same mock/live badge)
-followed by a **Retrieved sources** list: numbered citation cards (`[1]`, `[2]`, …) each showing
-the source markdown file, a cosine-similarity score (computed by pgvector's HNSW index, not
-hand-rolled JS), and the exact retrieved passage — so you can see precisely what grounded the
-answer.
+**Chapter 2 — RAG (`/rag`)** — a question box with clickable sample questions. Ask something like
+*"What is the Model Context Protocol?"* and you'll see an **Answer** card followed by a
+**Retrieved sources** list: numbered citation cards each showing the source markdown file, a
+cosine-similarity score (computed by pgvector's HNSW index, not hand-rolled JS), and the exact
+retrieved passage.
 
-**AI Agent + MCP (`/agent`)** — a prompt box, an "Include tools from the MCP server" checkbox, and
-three one-click sample prompts:
-- *"What's 18% of 240?"* → the agent calls the **calculator** tool and shows the exact expression
-  and result.
-- *"What is the Model Context Protocol?"* → the agent calls **search_knowledge_base** and shows
-  the retrieved passages it used.
-- *"What's the weather in Austin?"* (with MCP enabled) → the agent calls **get_weather**, a tool
-  that lives entirely inside the separate `mcp-server/` process, reached over the real MCP
-  protocol — proving the integration is real, not simulated.
+**Chapter 3 — AI Agent + MCP (`/agent`)** — a prompt box, an "Include tools from the MCP server"
+checkbox, and one-click sample prompts that trigger the calculator tool, the knowledge-base search
+tool, or (with MCP enabled) the weather tool living entirely inside the separate `mcp-server/`
+process. Each run renders a **Reasoning trace**: every tool call, its input, its result, and the
+final answer — the full think → act → observe → answer loop made visible.
 
-Each run renders a **Reasoning trace**: a numbered list of steps, each tagged `tool call` /
-`tool result` / `final answer`, showing the tool name, its JSON input, its raw output, and finally
-the agent's answer — the full think → act → observe → answer loop made visible.
+**Chapter 4 — Automatic Text Summarization (`/summarize`)** — paste in a paragraph and choose how
+many sentences to extract; TextRank scores every sentence and returns the top-ranked ones in
+original order, alongside extracted keywords and a before/after Flesch-Kincaid readability
+comparison.
+
+**Chapter 5 — Tokenization and the Cost of a Request (`/tokenizer`)** — type text and see it split
+into real BPE tokens (trained live by the Python service), plus an estimated dollar cost at
+published per-model rates.
+
+**Chapter 6 — Semantic Caching (`/cache`)** — paste a list of queries, one per line, including a
+paraphrase and an exact repeat; watch each one get replayed against an in-memory cache keyed by
+embedding similarity, with a hit/miss trace showing exactly why.
+
+**Chapter 7 — Evaluating AI Outputs (`/eval`)** — enter a candidate answer and a reference answer;
+see it scored by exact match, ROUGE-L overlap, and semantic similarity, combined into one
+composite score.
+
+**Chapter 8 — These Concepts in the Real World (`/enterprise`)** — real companies (Klarna, Morgan
+Stanley, Spotify, GitHub, Goldman Sachs, the Linux Foundation) and their published numbers, one
+case study per core concept from Chapters 1–3.
+
+**Chapter 9 — The System Behind This Tutorial (`/architecture`)** — a behind-the-scenes tour of
+this very system, including a diagram of how the four services talk to each other.
+
+**Chapter 10 — How This Tutorial Was Built (`/building`)** — the story of how an AI coding
+assistant and a person built this app together, iteration by iteration.
+
+**Glossary (`/glossary`)** — every term introduced across all ten chapters, each linked back to
+where it's explained and, where one exists, to a real primary source.
 
 ---
 
-## 6. Notes
+## 7. Notes
 
 - **Mock mode is not a lesser demo — it's the default one.** Every route, prompt template,
   retrieval step, and tool call is real; only the final LLM call is canned (and always prefixed
@@ -384,3 +534,7 @@ the agent's answer — the full think → act → observe → answer loop made v
   `http://localhost:3000` locally, but **must** be set to the frontend's real public URL in
   deployment (see `deployment.md`'s "backend ↔ frontend URL is circular" note), otherwise any
   other website's JS could call the deployed backend and spend your Anthropic API budget.
+- **The Python service's algorithms are honestly scaled down, not faked.** The BPE tokenizer,
+  TextRank summarizer, and hashing embeddings are all real implementations of real algorithms —
+  just trained or run on far less data than a production system would use, exactly as each
+  module's docstring explains. None of them call out to a hosted model or fabricate output.

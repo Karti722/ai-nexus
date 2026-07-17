@@ -27,18 +27,36 @@ const CHAPTERS = [
   },
   {
     number: "Chapter 5",
+    href: "/tokenizer",
+    title: "Tokenization and the Cost of a Request",
+    description: "A real BPE tokenizer, and what a hosted model actually costs to call.",
+  },
+  {
+    number: "Chapter 6",
+    href: "/cache",
+    title: "Semantic Caching",
+    description: "Skipping a model call entirely when a new question means the same thing as an old one.",
+  },
+  {
+    number: "Chapter 7",
+    href: "/eval",
+    title: "Evaluating AI Outputs",
+    description: "Scoring an answer against a reference instead of just eyeballing it.",
+  },
+  {
+    number: "Chapter 8",
     href: "/enterprise",
     title: "These Concepts in the Real World",
     description: "Real companies, real numbers: how this stuff is actually used at scale.",
   },
   {
-    number: "Chapter 6",
+    number: "Chapter 9",
     href: "/architecture",
     title: "The System Behind This Tutorial",
     description: "A behind-the-scenes tour of the system running these chapters.",
   },
   {
-    number: "Chapter 7",
+    number: "Chapter 10",
     href: "/building",
     title: "How This Tutorial Was Built",
     description: "The story of how an AI coding assistant and a person built this, together.",

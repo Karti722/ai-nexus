@@ -24,7 +24,7 @@ Four pieces, mirroring `docker-compose.yml`:
 |---|---|---|---|
 | `frontend` | `frontend/Dockerfile` (Next.js) | **Public** — this is what users open in a browser | `backend` (via `NEXT_PUBLIC_API_BASE_URL`, baked in at build time) |
 | `backend` | `backend/Dockerfile` (Express API; bundles the compiled `mcp-server/` and spawns it as a stdio child process — **no separate deployment needed for MCP**) | **Public** — the frontend and any API client call this over HTTPS | `python-service`, `postgres`, Anthropic API (outbound) |
-| `python-service` | `python-service/Dockerfile` (FastAPI embeddings) | **Internal only** — only `backend` needs to reach it | nothing |
+| `python-service` | `python-service/Dockerfile` (FastAPI — embeddings, summarization, tokenization/cost, semantic caching, evaluation; stdlib-only, no downloaded models) | **Internal only** — only `backend` needs to reach it | nothing |
 | `postgres` | managed Postgres + `pgvector` (not self-hosted in prod) | **Internal only** — only `backend` needs to reach it | nothing |
 
 Because `NEXT_PUBLIC_API_BASE_URL` is compiled into the frontend's static JS at build time (Next.js

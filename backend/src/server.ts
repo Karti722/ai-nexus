@@ -1,9 +1,12 @@
 import cors from "cors";
 import express from "express";
 import { agentRouter } from "./routes/agent.route";
+import { cacheRouter } from "./routes/cache.route";
 import { chatRouter } from "./routes/chat.route";
+import { evalRouter } from "./routes/eval.route";
 import { ragRouter } from "./routes/rag.route";
 import { summarizeRouter } from "./routes/summarize.route";
+import { tokenizerRouter } from "./routes/tokenizer.route";
 import { config } from "./config";
 import { seedKnowledgeBaseIfEmpty } from "./rag/seedDocuments";
 
@@ -20,6 +23,9 @@ app.use("/api/chat", chatRouter);
 app.use("/api/rag", ragRouter);
 app.use("/api/agent", agentRouter);
 app.use("/api/summarize", summarizeRouter);
+app.use("/api/tokenize", tokenizerRouter);
+app.use("/api/cache-sim", cacheRouter);
+app.use("/api/evaluate", evalRouter);
 
 async function main() {
   await seedKnowledgeBaseIfEmpty();

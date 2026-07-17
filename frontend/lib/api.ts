@@ -117,3 +117,48 @@ export interface SummarizeResponse {
 export function summarizeText(text: string, sentenceCount: number): Promise<SummarizeResponse> {
   return postJson<SummarizeResponse>("/api/summarize", { text, sentenceCount });
 }
+
+export interface CostEstimate {
+  model: string;
+  inputCostUsd: number;
+  inputRatePerMillion: number;
+  outputRatePerMillion: number;
+}
+
+export interface TokenizeResponse {
+  tokens: string[];
+  tokenCount: number;
+  costEstimates: CostEstimate[];
+}
+
+export function tokenizeText(text: string): Promise<TokenizeResponse> {
+  return postJson<TokenizeResponse>("/api/tokenize", { text });
+}
+
+export interface CacheSimResult {
+  query: string;
+  hit: boolean;
+  matchedQuery: string | null;
+  similarity: number;
+}
+
+export interface CacheSimResponse {
+  results: CacheSimResult[];
+  hitCount: number;
+  missCount: number;
+}
+
+export function simulateCache(queries: string[], threshold: number): Promise<CacheSimResponse> {
+  return postJson<CacheSimResponse>("/api/cache-sim", { queries, threshold });
+}
+
+export interface EvaluateResponse {
+  exactMatch: boolean;
+  rougeL: number;
+  semanticSimilarity: number;
+  compositeScore: number;
+}
+
+export function evaluateOutput(candidate: string, reference: string): Promise<EvaluateResponse> {
+  return postJson<EvaluateResponse>("/api/evaluate", { candidate, reference });
+}
