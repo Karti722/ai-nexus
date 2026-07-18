@@ -466,3 +466,68 @@ not a folder to `cd` into.
 - **If something doesn't come up correctly**, the single most useful thing to check first is the
   `backend` logs command from Step 7, it tells you immediately whether the problem is "can't
   reach Postgres" versus something else.
+
+---
+
+## Stopping or deleting this deployment
+
+None of this is urgent for cost reasons, everything here scales to zero or sits in a free tier
+either way (see "Good to know" above), so leaving it all running costs $0 whether you use it
+again tomorrow or never touch it again. This section is for when you want it torn down anyway,
+for tidiness, to reclaim the `ainexusacr`-style unique name, or because you're done with the
+project entirely. None of the commands below care which folder your terminal is in, they all act
+on cloud resources by name, not local files, so **Where: Your local terminal**, any folder, for
+every command in this section.
+
+### Option 1: Delete just AI Nexus's pieces (keep your GCP project for other things)
+
+Do this if you might use this same GCP project for something else later and want to keep it, just
+remove what this guide created.
+
+1. Delete the frontend service:
+   ```powershell
+   gcloud run services delete frontend --region us-central1
+   ```
+2. Delete the backend service:
+   ```powershell
+   gcloud run services delete backend --region us-central1
+   ```
+3. Delete the python-service service:
+   ```powershell
+   gcloud run services delete python-service --region us-central1
+   ```
+4. Delete the `postgres-url` secret:
+   ```powershell
+   gcloud secrets delete postgres-url
+   ```
+5. Delete the `anthropic-api-key` secret (skip this one if you used mock mode and never created
+   it):
+   ```powershell
+   gcloud secrets delete anthropic-api-key
+   ```
+6. Delete the Artifact Registry repository. This removes the `backend`, `frontend` and
+   `python-service` images inside it too, you don't need to delete those separately:
+   ```powershell
+   gcloud artifacts repositories delete ai-nexus --location=us-central1
+   ```
+7. **(Your browser, optional)** Delete the Neon project: go to
+   [console.neon.tech](https://console.neon.tech), open the project you created in Step 1, and
+   delete it from its settings page. Neon is a separate company from Google Cloud, so nothing in
+   the `gcloud` commands above touches it, this is the only step that isn't a `gcloud` command.
+
+Each `gcloud ... delete` command above will ask you to confirm with a `y`/`N` prompt before it
+actually deletes anything.
+
+### Option 2: Delete the entire GCP project (fastest, guaranteed $0 going forward)
+
+Do this instead of Option 1 if the project you created in Step 0 was made just for this guide and
+you don't need it for anything else. This removes every resource above in one command, along with
+anything else you may have put in that project, so only run it if you're sure:
+```powershell
+gcloud projects delete YOUR_PROJECT_ID
+```
+Replace `YOUR_PROJECT_ID` with the same Project ID you've used in every command throughout this
+guide. Google gives you roughly a 30-day grace period where the project is disabled but
+recoverable before it's permanently purged, in case you delete the wrong one by mistake. This
+does not touch your Neon project, delete that separately in your browser the same way as step 7
+in Option 1 above if you want it gone too.
