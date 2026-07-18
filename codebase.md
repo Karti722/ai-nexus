@@ -134,9 +134,10 @@ service's `/docs`): every endpoint added to this service (`/tokenize`, `/cache-s
 included) got a validated, typed contract for free just by declaring a `BaseModel`, with no
 separate validation code written by hand. The trade-off: a second language means a second
 install step, a second set of typing conventions and a real network hop with real failure modes
-(see `embeddingsClient.ts`'s fallback) where an in-process function call would do if everything
-were TypeScript; worth it here because every algorithm this service hosts is naturally
-self-contained and never needs to share memory or a transaction with the orchestrator.
+(see `embeddingsClient.ts`, which throws a clear error rather than degrading silently if that hop
+fails) where an in-process function call would do if everything were TypeScript; worth it here
+because every algorithm this service hosts is naturally self-contained and never needs to share
+memory or a transaction with the orchestrator.
 
 **Database: PostgreSQL + pgvector.** Considered instead: a dedicated vector database (Pinecone,
 Weaviate, Qdrant, Milvus), an embedded option (Chroma) or an in-memory brute-force scan. pgvector
@@ -213,7 +214,7 @@ ai-nexus/
 │       │   └── index.ts           # picks real vs. mock based on config
 │       ├── rag/
 │       │   ├── chunker.ts         # splits markdown into overlapping chunks
-│       │   ├── embeddingsClient.ts# calls python-service, falls back to local hashing embedding
+│       │   ├── embeddingsClient.ts# calls python-service for embeddings, throws on failure
 │       │   ├── vectorStore.ts     # Postgres + pgvector store, HNSW-indexed cosine search
 │       │   └── seedDocuments.ts   # loads knowledge-base/*.md into the vector store
 │       ├── agent/
@@ -338,11 +339,14 @@ ai-nexus/
 - **`src/rag/`**
   - `chunker.ts`: splits a markdown file into ~600-character overlapping chunks along paragraph
     boundaries.
-  - `embeddingsClient.ts`: POSTs text to the Python service's `/embed`; if that service is
-    unreachable, transparently falls back to an in-process deterministic hashing embedding (same
-    algorithm the Python service itself falls back to), so RAG never hard-fails.
+  - `embeddingsClient.ts`: POSTs text to the Python service's `/embed`; throws a clear error if
+    that service is unreachable rather than silently degrading. An earlier version transparently
+    fell back to a second, in-process hashing embedding, which was removed: a transient failure
+    during `seedDocuments.ts`'s one-time seed could otherwise have permanently embedded the whole
+    knowledge base with a different, less accurate algorithm than every later live query uses, a
+    silent retrieval-quality bug rather than a visible, fixable error.
   - `vectorStore.ts`: a real vector database (Postgres + the **pgvector** extension), with a
-    `chunks` table (`embedding vector(256)`) and a genuine HNSW ANN index
+    `chunks` table (`embedding vector(1024)`) and a genuine HNSW ANN index
     (`USING hnsw (embedding vector_cosine_ops)`). Similarity search is pushed down into Postgres
     itself (`ORDER BY embedding <=> $query LIMIT k`) rather than scored by hand in JS. (See
     `06-vector-databases.md` for the general concept this implements.)
@@ -361,9 +365,10 @@ ai-nexus/
   **`src/cache/cacheClient.ts`**, **`src/eval/evalClient.ts`**: one thin client per Python-service
   endpoint, all following the same shape as `embeddingsClient.ts`'s HTTP call: POST, translate the
   Python service's `snake_case` JSON into the rest of the app's `camelCase` convention, throw a
-  clear error on failure. Unlike embeddings, none of these have an in-process fallback: each is a
-  standalone demo feature nothing else in the app depends on, so a clear error is preferable to a
-  silently degraded response.
+  clear error on failure. None of the Python-service clients, embeddings included, have an
+  in-process fallback: each is a feature nothing else in the app depends on (or, for embeddings,
+  one where a silent fallback risked corrupting the seeded vector store), so a clear error is
+  preferable to a silently degraded response.
 - **`src/routes/`**: thin Express handlers that validate input, call into the modules above and
   shape the JSON response. Each catch block uses `utils/errors.ts` to surface the real failure
   reason (e.g. an Anthropic billing error) instead of a generic message, so failures are

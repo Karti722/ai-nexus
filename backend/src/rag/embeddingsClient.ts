@@ -1,65 +1,67 @@
 import { config } from "../config";
 
-export const EMBEDDING_DIMS = 256;
+// Must match python-service/app/embeddings.py's EMBEDDING_DIMS exactly: this
+// value sets the pgvector column width in vectorStore.ts, so it has to equal
+// the length of the vectors python-service actually returns.
+export const EMBEDDING_DIMS = 1024;
+
+const MAX_ATTEMPTS = 5;
+const RETRY_DELAY_MS = 1000;
 
 /**
- * Gets embeddings for a batch of texts. Prefers the Python microservice
- * (python-service/) so the "polyglot microservices" and "vector embeddings"
- * concepts are demonstrated end to end; if that service is unreachable
- * (not started, still booting, etc.) it transparently falls back to an
- * identical deterministic hashing embedding computed in-process, so the RAG
- * demo never hard-fails just because one service is down.
+ * Gets embeddings for a batch of texts by calling the Python microservice
+ * (python-service/), demonstrating the "polyglot microservices" and "vector
+ * embeddings" concepts end to end. There is deliberately no in-process
+ * fallback: an earlier version of this function silently substituted a local
+ * hash embedding whenever python-service was unreachable, which meant a
+ * transient failure during the one-time knowledge-base seed (see
+ * seedDocuments.ts) could permanently seed the vector store with embeddings
+ * from a different, less accurate algorithm than every later live query
+ * uses, a silent, hard-to-diagnose retrieval-quality bug rather than a
+ * visible error. Every caller (rag.route.ts, tools.ts, seedDocuments.ts)
+ * already wraps its work in a try/catch that returns a clean error response,
+ * so failing loudly here is strictly safer than degrading silently.
+ *
+ * It does retry a few times first, on a short fixed delay: `npm run dev`
+ * starts backend and python-service (a `uvicorn --reload` process, a couple
+ * seconds slower to actually accept connections than to start) concurrently,
+ * so backend's very first embedding call, the knowledge-base seed at
+ * startup, can easily race python-service's own boot. That's an ordinary
+ * timing race, not a real outage, so it's worth a few seconds of retrying
+ * the identical, correct call before treating it as a genuine failure.
  */
 export async function embedTexts(texts: string[]): Promise<number[][]> {
-  try {
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 3000);
 
-    const res = await fetch(`${config.pythonEmbeddingServiceUrl}/embed`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ texts }),
-      signal: controller.signal,
-    });
-    clearTimeout(timeout);
+    try {
+      const res = await fetch(`${config.pythonEmbeddingServiceUrl}/embed`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ texts }),
+        signal: controller.signal,
+      });
 
-    if (!res.ok) throw new Error(`embedding service responded ${res.status}`);
+      if (!res.ok) throw new Error(`embedding service responded ${res.status}`);
 
-    const data = (await res.json()) as { embeddings: number[][] };
-    return data.embeddings;
-  } catch (err) {
-    console.warn(
-      `[embeddingsClient] python-service unreachable (${(err as Error).message}); ` +
-        `using in-process fallback embedding instead.`
-    );
-    // NOTE: must be wrapped in an arrow fn; Array.map passes (value, index,
-    // array) to its callback, and index would otherwise silently clobber
-    // localHashEmbedding's `dims` parameter.
-    return texts.map((text) => localHashEmbedding(text));
-  }
-}
-
-/** Deterministic hashing ("bag of words") embedding: no ML model required.
- * Same algorithm the Python service falls back to, so results stay
- * consistent whichever path served the request. Good enough for keyword-ish
- * semantic similarity in a demo; swap for real sentence-transformer or
- * OpenAI embeddings in production. */
-export function localHashEmbedding(text: string, dims = EMBEDDING_DIMS): number[] {
-  const vector = new Array(dims).fill(0);
-  const words = text.toLowerCase().match(/[a-z0-9]+/g) ?? [];
-
-  for (const word of words) {
-    vector[hashString(word) % dims] += 1;
+      const data = (await res.json()) as { embeddings: number[][] };
+      return data.embeddings;
+    } catch (err) {
+      lastError = err;
+      if (attempt < MAX_ATTEMPTS) {
+        console.warn(
+          `[embeddingsClient] attempt ${attempt}/${MAX_ATTEMPTS} failed (${(err as Error).message}), ` +
+            `retrying in ${RETRY_DELAY_MS}ms...`
+        );
+        await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
+      }
+    } finally {
+      clearTimeout(timeout);
+    }
   }
 
-  const norm = Math.sqrt(vector.reduce((sum, v) => sum + v * v, 0)) || 1;
-  return vector.map((v) => v / norm);
-}
-
-function hashString(value: string): number {
-  let hash = 0;
-  for (let i = 0; i < value.length; i++) {
-    hash = (hash * 31 + value.charCodeAt(i)) | 0;
-  }
-  return Math.abs(hash);
+  throw lastError;
 }

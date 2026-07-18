@@ -26,9 +26,17 @@ const pool = new Pool({ connectionString: config.postgresUrl });
 
 let readyPromise: Promise<void> | null = null;
 
-/** Lazily creates the pgvector extension, table and HNSW index the first
- * time the store is touched. Safe to call repeatedly; every statement is
- * idempotent (`IF NOT EXISTS`). */
+/** Lazily creates the pgvector extension, table, HNSW index and a
+ * `(source, text)` uniqueness constraint the first time the store is
+ * touched. Safe to call repeatedly; every statement is idempotent (`IF NOT
+ * EXISTS`). The uniqueness constraint exists because `seedKnowledgeBaseIfEmpty`'s
+ * "check if empty, then insert" is a classic check-then-act race: if two
+ * backend processes ever start concurrently (e.g. a dev-server restart
+ * racing the process it's replacing), both can see an empty table and both
+ * proceed to seed the full knowledge base, silently tripling every chunk.
+ * That's exactly what happened once during development; the constraint
+ * below makes it a DB-level guarantee that can't recur, rather than
+ * something that depends on application code never racing. */
 function ensureReady(): Promise<void> {
   if (!readyPromise) {
     readyPromise = (async () => {
@@ -44,6 +52,10 @@ function ensureReady(): Promise<void> {
       await pool.query(`
         CREATE INDEX IF NOT EXISTS chunks_embedding_hnsw_idx
         ON chunks USING hnsw (embedding vector_cosine_ops)
+      `);
+      await pool.query(`
+        CREATE UNIQUE INDEX IF NOT EXISTS chunks_source_text_unique
+        ON chunks (source, text)
       `);
     })();
   }
@@ -66,11 +78,13 @@ export async function clearStore(): Promise<void> {
 
 export async function addChunk(source: string, text: string, embedding: number[]): Promise<void> {
   await ensureReady();
-  await pool.query("INSERT INTO chunks (source, text, embedding) VALUES ($1, $2, $3)", [
-    source,
-    text,
-    toVectorLiteral(embedding),
-  ]);
+  // ON CONFLICT DO NOTHING: two concurrent seed attempts inserting the same
+  // (source, text) pair is now a harmless no-op instead of a duplicate row.
+  await pool.query(
+    `INSERT INTO chunks (source, text, embedding) VALUES ($1, $2, $3)
+     ON CONFLICT (source, text) DO NOTHING`,
+    [source, text, toVectorLiteral(embedding)]
+  );
 }
 
 export async function countChunks(): Promise<number> {
