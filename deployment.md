@@ -137,6 +137,21 @@ needs to know the frontend's address to allow it to make calls, you deploy in th
 **backend and python-service first, then frontend, then a final one-line update back on the
 backend.**
 
+### Do you need to set up the Postgres database yourself? No
+
+You never manually create tables, run migrations, or seed data, this guide doesn't have a step
+for it because there isn't one. The backend does all of it itself, automatically, the moment it
+successfully connects to Postgres:
+- `vectorStore.ts`'s `ensureReady()` creates the `pgvector` extension, the `chunks` table and its
+  search index, if they don't already exist.
+- `seedDocuments.ts` then checks if that table is empty and, if so, reads the knowledge-base
+  files baked into the backend's image, chunks and embeds them, and inserts them. If the table
+  already has data (e.g. you're redeploying, not deploying for the first time), it logs that it's
+  skipping the seed and moves on, it never duplicates data.
+
+This is exactly what Step 7's log check confirms, seeing it connect and either seed or skip is
+how you know the database side worked, with nothing else for you to do.
+
 ### About mock mode (and why this guide doesn't use it)
 
 If you never set an `ANTHROPIC_API_KEY`, the deployed app still works completely: every feature
