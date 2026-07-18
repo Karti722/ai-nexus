@@ -339,16 +339,25 @@ ai-nexus/
 - **`src/rag/`**
   - `chunker.ts`: splits a markdown file into ~600-character overlapping chunks along paragraph
     boundaries.
-  - `embeddingsClient.ts`: POSTs text to the Python service's `/embed`; throws a clear error if
-    that service is unreachable rather than silently degrading. An earlier version transparently
-    fell back to a second, in-process hashing embedding, which was removed: a transient failure
-    during `seedDocuments.ts`'s one-time seed could otherwise have permanently embedded the whole
-    knowledge base with a different, less accurate algorithm than every later live query uses, a
-    silent retrieval-quality bug rather than a visible, fixable error.
+  - `embeddingsClient.ts`: POSTs text to the Python service's `/embed`, retrying up to 5 times on
+    a 1-second delay before giving up, since `npm run dev` starts `backend` and `python-service`
+    concurrently and the very first embedding call (the knowledge-base seed at startup) can easily
+    race `python-service`'s own boot; that's an ordinary timing race, not a real outage, worth
+    riding out. Beyond that, it throws a clear error rather than silently degrading. An earlier
+    version transparently fell back to a second, in-process hashing embedding, which was removed:
+    a transient failure during `seedDocuments.ts`'s one-time seed could otherwise have permanently
+    embedded the whole knowledge base with a different, less accurate algorithm than every later
+    live query uses, a silent retrieval-quality bug rather than a visible, fixable error.
   - `vectorStore.ts`: a real vector database (Postgres + the **pgvector** extension), with a
-    `chunks` table (`embedding vector(1024)`) and a genuine HNSW ANN index
-    (`USING hnsw (embedding vector_cosine_ops)`). Similarity search is pushed down into Postgres
-    itself (`ORDER BY embedding <=> $query LIMIT k`) rather than scored by hand in JS. (See
+    `chunks` table (`embedding vector(1024)`), a genuine HNSW ANN index
+    (`USING hnsw (embedding vector_cosine_ops)`) and a `UNIQUE (source, text)` index enforced at
+    the database level: `seedKnowledgeBaseIfEmpty`'s "check if empty, then insert" is a
+    check-then-act race that two concurrently-starting backend processes could both pass, both
+    then seeding the full knowledge base and silently duplicating every chunk (this actually
+    happened once during development); `addChunk`'s insert uses `ON CONFLICT (source, text) DO
+    NOTHING` so a repeat seed attempt is now a harmless no-op instead of duplicate rows. Similarity
+    search is pushed down into Postgres itself (`ORDER BY embedding <=> $query LIMIT k`) rather
+    than scored by hand in JS. (See
     `06-vector-databases.md` for the general concept this implements.)
   - `seedDocuments.ts`: on first boot, chunks + embeds every file in
     `data/knowledge-base/` and writes it into the vector store; skipped on later restarts.
@@ -395,8 +404,14 @@ A FastAPI app with six real endpoints, none of which need any downloaded model, 
 endpoint:
 - **`GET /health`**: liveness check.
 - **`POST /embed`** (`embeddings.py`): turns text into vectors using a dependency-free
-  deterministic hashing scheme. The module's docstring shows exactly how to swap in a real
-  `sentence-transformers` model or an OpenAI embeddings call without touching any other service.
+  deterministic hashing scheme, with common English stopwords dropped before hashing (otherwise
+  two unrelated questions sharing only filler words like "what is the" score as more similar than
+  a genuine paraphrase) and a small acronym-expansion table, sourced from this app's own glossary
+  (`MCP`, `RAG`, `LLM`, `BPE`, `HNSW`, `API`, plural forms included), so a query using the acronym
+  and one spelling it out land close together. Both are targeted fixes for specific failure modes
+  this exact algorithm has, not general synonym detection. The module's docstring shows exactly
+  how to swap in a real `sentence-transformers` model or an OpenAI embeddings call without
+  touching any other service.
 - **`POST /summarize`** (`summarizer.py`, `keywords.py`, `readability.py`): real TextRank
   extractive summarization (a graph/PageRank-style ranking over the sentences' own embeddings),
   plus term-frequency keyword extraction and Flesch/Flesch-Kincaid readability scoring for both the
