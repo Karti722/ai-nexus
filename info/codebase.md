@@ -158,11 +158,12 @@ story), or committing to Kubernetes from the start. This app is four independent
 services across two runtimes plus Postgres: Compose is the lightest tool that still makes
 `docker compose up` reproduce an identical environment on any machine, rather than asking a new
 contributor to install Python, Node and Postgres natively and configure all three correctly by
-hand. It's also what makes `deployment.md` section 1's "the same four images work on any cloud"
-claim literally true rather than aspirational. The trade-off: Kubernetes offers real production
-primitives (rolling deploys, autoscaling, self-healing) Compose doesn't have: irrelevant to a
-single-instance demo deployment, which is why that path exists only as an optional section in
-`deployment.md` rather than the default.
+hand. It's also what makes each service's own `Dockerfile` genuinely portable to any container
+platform, not just the specific one `deployment.md` documents (Cloud Run): the same image would run
+unmodified on any other container host. The trade-off: Kubernetes offers real production primitives
+(rolling deploys, autoscaling, self-healing) Compose doesn't have, irrelevant to a single-instance
+demo deployment, which is why `deployment.md` documents Cloud Run specifically rather than Kubernetes
+at all.
 
 **LLM provider: Anthropic Claude.** Considered instead: OpenAI's API, or a self-hosted open-source
 model (Llama, Mistral). This app's `LLMClient` interface (`backend/src/llm/types.ts`) is
@@ -182,12 +183,18 @@ after the fact.
 
 ```
 ai-nexus/
-├── codebase.md                    # this file
-├── deployment.md                  # how to deploy this app to AWS / Azure / GCP
+├── README.md                      # start here: what this project is, and a map of the docs below
+├── info/
+│   ├── codebase.md                # this file: architecture + local setup
+│   ├── deployment.md              # how this app was deployed to GCP (Cloud Run + Neon), by hand, for $0/month
+│   └── CI-CD.md                   # how deployment.md's redeploy steps got automated with GitHub Actions, and why
 ├── package.json                   # root orchestration scripts (npm run dev, npm run stop, etc.)
 ├── docker-compose.yml             # wires postgres (pgvector), python-service, backend, frontend together
 ├── .env.example                   # copy to .env and fill in what you have
 ├── .gitignore
+├── .github/
+│   └── workflows/
+│       └── deploy.yml             # info/CI-CD.md's GitHub Actions workflow: build, push, redeploy on push to main
 ├── scripts/
 │   ├── dev.js                     # npm run dev: runs all services, auto-cleans up on exit/Ctrl+C
 │   └── stop-all.js                # npm run stop: kills every service npm run dev starts
@@ -273,6 +280,9 @@ ai-nexus/
     │   ├── ChatWindow.tsx
     │   ├── SourceCitation.tsx
     │   ├── AgentTrace.tsx
+    │   ├── WeatherCard.tsx         # rich visual for get_weather's trace result
+    │   ├── CalculatorCard.tsx      # rich visual for calculator's trace result
+    │   ├── KnowledgeBaseResults.tsx # rich visual for search_knowledge_base's trace result
     │   ├── TextbookPage.tsx
     │   ├── Analogy.tsx
     │   ├── CaseStudy.tsx
@@ -301,6 +311,9 @@ ai-nexus/
 ## 4. File-by-file explanation
 
 ### Root
+- **`README.md`**: the entry point for anyone landing on this repo: what AI Nexus is, at a glance,
+  and a map pointing to `info/codebase.md`, `info/deployment.md` and `info/CI-CD.md` for everything
+  else.
 - **`package.json`**: orchestration only. `npm run dev` runs `scripts/dev.js`, which drives
   `concurrently` to boot the backend, frontend, Python service and MCP server watch-build all at
   once.
@@ -309,10 +322,6 @@ ai-nexus/
   its image, since the agent spawns MCP as a child process) and `frontend`.
 - **`.env.example`**: every environment variable the app reads, each with an inline comment
   explaining what it's for and what happens if it's left blank.
-- **`deployment.md`**: step-by-step guide for deploying this app to AWS (ECS Fargate + RDS),
-  Azure (Container Apps + Azure Database for PostgreSQL) or GCP (Cloud Run + Cloud SQL); plus a
-  Kubernetes path if you need it, and a genuinely **$0/month** path (Cloud Run or Container Apps +
-  [Neon](https://neon.tech) for a free `pgvector`-enabled Postgres) for demo/portfolio use.
 - **`scripts/dev.js`**: powers `npm run dev`. Drives `concurrently` programmatically (rather than
   shelling out to its CLI) specifically so it can run `stop-all.js`'s cleanup automatically when
   `npm run dev` exits or is interrupted; see the "Stopping everything" note in section 6 for the
@@ -321,6 +330,19 @@ ai-nexus/
   exit). Finds and kills anything listening on this app's ports plus any lingering
   mcp-server/dev.js watcher processes, so a half-killed `npm run dev` (common on Windows; see
   section 6) doesn't block the next one from starting.
+
+### `info/`: everything beyond "what is this" and "how do I run it"
+- **`codebase.md`**: this file, architecture and local setup.
+- **`deployment.md`**: step-by-step guide for how this app was deployed to GCP (Cloud Run + a free
+  [Neon](https://neon.tech)-hosted `pgvector` Postgres instance) for a genuine **$0/month**, from a
+  completely blank starting point, no cloud account or tooling installed yet. Ends by pointing at
+  `CI-CD.md` for automating future redeploys, rather than documenting that by hand itself.
+- **`CI-CD.md`**: automates the redeploy steps `deployment.md` would otherwise have you run by hand,
+  via a GitHub Actions workflow (`.github/workflows/deploy.yml`) that rebuilds, pushes and redeploys
+  on every push to `main`, authenticating via Workload Identity Federation rather than a
+  downloadable service account key. Explicitly requires `deployment.md` to already be fully done
+  and confirmed working first: this file has no steps of its own for creating the underlying Cloud
+  Run services, secrets or database, only for automating redeploys onto ones that already exist.
 
 ### `backend/`: the Express REST API (the orchestrator, see section 1)
 - **`src/config.ts`**: loads `.env` once and exposes a typed `config` object, including the
@@ -482,11 +504,17 @@ exceptions: both now call a real hosted model directly instead of approximating 
 - **`lib/api.ts`**: typed fetch wrappers for every backend endpoint; the only place that knows
   the backend's URL/shape. No logic beyond request/response typing lives here.
 - **`components/`**: `ChatWindow` (stateful chat UI), `SourceCitation` (a RAG result card),
-  `AgentTrace` (renders the agent's tool_call/tool_result/final steps as a timeline), `ConceptCard`
-  + `NavBar` (landing page and navigation) and the shared "textbook" vocabulary used by every
-  chapter page: `TextbookPage` (the printed-page shell: eyebrow, title, page number),
-  `Analogy` and `CaseStudy` (left-border callout boxes), `Sources` (a citation list) and
-  `ArchitectureDiagram` (Chapter 9's system diagram).
+  `AgentTrace` (renders the agent's tool_call/tool_result/final steps as a timeline), which for
+  `tool_result` steps parses each of the three tools' own plain-text output into a dedicated richer
+  visual — `WeatherCard` (real WeatherAPI.com data, an emoji icon and a "LIVE" pill), `CalculatorCard`
+  (the expression and exact result, an "EXACT" pill, deliberately not "LIVE" since it's a real local
+  computation, not an external call) and `KnowledgeBaseResults` (reuses `SourceCitation`'s own visual
+  language, a "REAL" pill, since it wraps the same retrieval RAG uses) — falling back to the original
+  plain text whenever a tool's output doesn't match its expected shape (an error message, say), so a
+  parse miss never hides real information. Also `ConceptCard` + `NavBar` (landing page and
+  navigation) and the shared "textbook" vocabulary used by every chapter page: `TextbookPage` (the
+  printed-page shell: eyebrow, title, page number), `Analogy` and `CaseStudy` (left-border callout
+  boxes), `Sources` (a citation list) and `ArchitectureDiagram` (Chapter 9's system diagram).
 - **`app/`**: one route per chapter (see the directory tree above for the full chapter-to-route
   mapping), plus `/` (the table of contents), `/introduction` (front matter: why this guide
   exists, ahead of Chapter 1) and `/glossary` (every term, cross-linked to its chapter).

@@ -1,0 +1,101 @@
+name: Deploy to Cloud Run
+
+# Every setup step this workflow depends on (the service account, the
+# Workload Identity Federation pool/provider, the repo variables referenced
+# below) is documented step by step in info/CI-CD.md, which itself assumes
+# info/deployment.md has already been followed once, by hand, end to end.
+# This workflow automates redeploying onto the services info/deployment.md
+# already created: rebuild, push, redeploy each one, in the same dependency
+# order (python-service before backend, backend before frontend), reusing
+# the same secrets/IAM/service names info/deployment.md already set up rather
+# than recreating any of them.
+on:
+  push:
+    branches: [main]
+
+env:
+  REGION: us-central1
+  REPO: ai-nexus
+
+# id-token: write is what lets this workflow mint a short-lived OIDC token
+# GitHub signs itself, which Workload Identity Federation trades for a
+# real GCP credential — see CI/CD.md for why this is deliberately used
+# instead of a downloadable, long-lived service account key.
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+
+      # Tagging each image with the commit SHA, not :latest (which
+      # info/deployment.md's manual steps use for simplicity), is the one
+      # deliberate improvement this workflow makes over the manual path:
+      # every past deploy stays pullable by its exact SHA, so rolling back
+      # means redeploying an old, still-existing tag instead of hoping a
+      # rebuilt :latest happens to match what used to be running.
+      - name: Build and push python-service
+        run: |
+          docker build -f python-service/Dockerfile \
+            -t ${{ env.REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ env.REPO }}/python-service:${{ github.sha }} \
+            python-service
+          docker push ${{ env.REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ env.REPO }}/python-service:${{ github.sha }}
+
+      - name: Deploy python-service
+        run: |
+          gcloud run deploy python-service \
+            --image ${{ env.REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ env.REPO }}/python-service:${{ github.sha }} \
+            --region ${{ env.REGION }}
+
+      # Backend needs mcp-server alongside it, which is why its build
+      # context is the repo root, not backend/ — the exact same reason
+      # Step 2 of info/deployment.md builds it this way.
+      - name: Build and push backend
+        run: |
+          docker build -f backend/Dockerfile \
+            -t ${{ env.REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ env.REPO }}/backend:${{ github.sha }} \
+            .
+          docker push ${{ env.REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ env.REPO }}/backend:${{ github.sha }}
+
+      - name: Deploy backend
+        run: |
+          gcloud run deploy backend \
+            --image ${{ env.REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ env.REPO }}/backend:${{ github.sha }} \
+            --region ${{ env.REGION }}
+
+      - name: Get backend URL
+        id: backend_url
+        run: echo "url=$(gcloud run services describe backend --region ${{ env.REGION }} --format 'value(status.url)')" >> "$GITHUB_OUTPUT"
+
+      # NEXT_PUBLIC_API_BASE_URL is build-time (see info/deployment.md), so the
+      # frontend image has to be rebuilt whenever it changes, even though
+      # in practice the backend's URL almost never actually changes between
+      # deploys once info/deployment.md's Step 6 has run once.
+      - name: Build and push frontend
+        run: |
+          docker build -f frontend/Dockerfile \
+            --build-arg "NEXT_PUBLIC_API_BASE_URL=${{ steps.backend_url.outputs.url }}" \
+            -t ${{ env.REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ env.REPO }}/frontend:${{ github.sha }} \
+            frontend
+          docker push ${{ env.REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ env.REPO }}/frontend:${{ github.sha }}
+
+      - name: Deploy frontend
+        run: |
+          gcloud run deploy frontend \
+            --image ${{ env.REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ env.REPO }}/frontend:${{ github.sha }} \
+            --region ${{ env.REGION }}
