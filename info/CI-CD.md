@@ -52,6 +52,14 @@ Using a brand-new, narrowly-scoped service account here, rather than your own pe
 identity from `deployment.md`, is deliberate: if these credentials were ever misused, the blast
 radius is limited to exactly the three permissions below, not everything your own account can do.
 
+0. Enable the IAM Service Account Credentials API. Workload Identity Federation (Step 2 below)
+   uses it to exchange GitHub's token for temporary GCP credentials; without it, the workflow's
+   `google-github-actions/auth` step fails with `PERMISSION_DENIED: IAM Service Account
+   Credentials API has not been used in project ... or it is disabled`, this isn't one of the
+   three APIs `deployment.md` Step 0 already enabled:
+   ```powershell
+   gcloud services enable iamcredentials.googleapis.com --project=YOUR_PROJECT_ID
+   ```
 1. Create the service account:
    ```powershell
    gcloud iam service-accounts create github-actions-deployer `

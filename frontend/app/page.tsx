@@ -80,6 +80,18 @@ export default function HomePage() {
         AI Nexus
       </h1>
 
+      <p className="mt-3 font-display text-sm italic text-paper-ink/50 sm:text-base">
+        by{" "}
+        <a
+          href="https://kartikeyakumaria.vercel.app/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-paper-ink/70 underline decoration-paper-ink/25 underline-offset-4 transition hover:text-brand-700 hover:decoration-brand-500"
+        >
+          Kartikeya Kumaria
+        </a>
+      </p>
+
       <p className="mx-auto mt-6 max-w-xl text-base italic leading-relaxed text-paper-ink/70 sm:text-lg">
         A hands-on introduction to large language models, retrieval and AI agents: learn how
         modern AI actually works by using it yourself, no experience required.

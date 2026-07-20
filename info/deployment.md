@@ -569,7 +569,12 @@ not a folder to `cd` into.
    `NEXT_PUBLIC_API_BASE_URL` is `frontend`'s only `.env.example` variable, and this build-arg is
    the one and only place it's ever set: it's baked into the static JS at build time, not read at
    runtime, which is exactly why the `gcloud run deploy ai-nexus` command in step 3 below has no
-   `--set-env-vars` flag at all, unlike `backend`'s deploy command.
+   `--set-env-vars` flag at all, unlike `backend`'s deploy command. This only actually works because
+   `frontend/Dockerfile` explicitly declares `NEXT_PUBLIC_API_BASE_URL` as an `ARG` and promotes it
+   to `ENV` before `npm run build` runs; a bare `--build-arg` on the command line isn't enough by
+   itself, and without that Dockerfile plumbing every deployed page silently falls back to
+   `http://localhost:4000`, unreachable from a real browser (every feature failing identically is
+   the symptom, see `codebase.md`'s `lib/api.ts` section).
 2. Push it:
    ```powershell
    docker push us-central1-docker.pkg.dev/YOUR_PROJECT_ID/ai-nexus/frontend:latest
@@ -706,7 +711,30 @@ redeploy cycle a code change needs, rather than running it by hand every time.
   page if you're relying on this long after reading it.
 - **If something doesn't come up correctly**, the single most useful thing to check first is the
   `backend` logs command from Step 7, it tells you immediately whether the problem is "can't
-  reach Postgres" versus something else.
+  reach Postgres" versus something else. Failure modes actually hit while writing this guide, in
+  case the logs point at one of these:
+  - `backend` deploy fails with `container failed to start ... within the allocated timeout` and
+    the logs never get past `[rag] seeding vector store from N knowledge-base file(s)...`: almost
+    always Postgres, not `python-service`, check `vectorStore.ts`'s `ssl`/`connectionTimeoutMillis`
+    config exists (it's meant to be permanent, this is only worth checking if you've hand-edited
+    that file) and that Step 1's Neon connection string is exactly right in the `postgres-url`
+    secret (Step 3 has a verification command for this).
+  - Same timeout error, but the logs show `embedding service responded 404` instead: `backend`
+    reached `python-service` but was rejected, either the Step 4 `run.invoker` IAM grant never
+    actually applied (`gcloud run services get-iam-policy ai-nexus-python --region us-central1`
+    should show it) or `python-service` was deployed with `--ingress internal` despite this guide's
+    Step 4 no longer including that flag (network-layer block, happens before auth is even
+    checked).
+  - The site loads but every feature (chat, RAG, agent, everything) fails identically: the
+    frontend's built-in JS is calling `localhost:4000` instead of the real backend, meaning
+    `NEXT_PUBLIC_API_BASE_URL` didn't actually get baked in at Step 5's `docker build`. Open
+    DevTools → Network on the failing request and check the URL it's actually trying to reach to
+    confirm this before anything else. Verify `frontend/Dockerfile` declares
+    `NEXT_PUBLIC_API_BASE_URL` as both an `ARG` and an `ENV` before its `RUN npm run build` line
+    (meant to be permanent, only worth checking if hand-edited), then rebuild Step 5 from scratch.
+  - The GitHub Actions workflow fails on the `google-github-actions/auth` step specifically with
+    `PERMISSION_DENIED: IAM Service Account Credentials API has not been used`: see `CI-CD.md`
+    Step 1, item 0.
 
 ---
 

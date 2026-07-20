@@ -547,8 +547,9 @@ exceptions: both now call a real hosted model directly instead of approximating 
   rendering a dead link), `Analogy` and `CaseStudy` (left-border callout boxes), `Sources` (a
   citation list) and `ArchitectureDiagram` (Chapter 9's system diagram).
 - **`app/`**: one route per chapter (see the directory tree above for the full chapter-to-route
-  mapping), plus `/` (the table of contents), `/introduction` (front matter: why this guide
-  exists, ahead of Chapter 1) and `/glossary` (every term, cross-linked to its chapter).
+  mapping), plus `/` (the table of contents, with an author byline linking to
+  https://kartikeyakumaria.vercel.app/ under the title), `/introduction` (front matter: why this
+  guide exists, ahead of Chapter 1) and `/glossary` (every term, cross-linked to its chapter).
 
 ---
 
