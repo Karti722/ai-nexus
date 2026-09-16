@@ -98,7 +98,7 @@ export default function HomePage() {
           rel="noopener noreferrer"
           className="text-paper-ink/70 underline decoration-paper-ink/25 underline-offset-4 transition hover:text-brand-700 hover:decoration-brand-500"
         >
-          Kartikeya Kumaria (kartikeyakumaria.com)
+          Kartikeya Kumaria
         </a>
       </p>
 
