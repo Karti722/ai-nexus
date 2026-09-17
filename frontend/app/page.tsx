@@ -71,6 +71,13 @@ const CHAPTERS = [
     description: "The story of how an AI coding assistant and a person built this, together.",
     part: "Part III — Beyond the Model",
   },
+  {
+    number: "Chapter 11",
+    href: "/langgraph",
+    title: "A Personalized, Diagram-Based Explainer",
+    description: "Ask your own question and get back a real diagram and explanation built just for it.",
+    part: "Part IV — Ask the App",
+  },
 ];
 
 export default function HomePage() {
@@ -106,6 +113,16 @@ export default function HomePage() {
         A hands-on introduction to large language models, retrieval and AI agents: learn how
         modern AI actually works by using it yourself, no experience required.
       </p>
+
+      <Link
+        href="/explain"
+        className="group mx-auto mt-5 inline-flex max-w-md items-center gap-2 rounded-sm border border-brand-500/30 bg-brand-500/[0.05] px-4 py-2 text-sm text-paper-ink/80 transition hover:border-brand-500/50 hover:bg-brand-500/[0.08]"
+      >
+        <span className="underline decoration-paper-ink/25 underline-offset-4 transition group-hover:text-brand-700 group-hover:decoration-brand-500">
+          Generate a personalized explanation of this app
+        </span>
+        <span className="shrink-0 text-xs italic text-paper-ink/50">(recommended if reading isn't your style)</span>
+      </Link>
 
       <div className="mx-auto mt-10 h-px w-24 bg-paper-ink/20" />
 

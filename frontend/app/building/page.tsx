@@ -9,7 +9,7 @@ export default function BuildingPage() {
         title="How This Tutorial Was Built"
         pageNumber="Page 10"
         prevPage={{ href: "/architecture", label: "Chapter 9: The System Behind This Tutorial" }}
-        nextPage={{ href: "/glossary", label: "Glossary" }}
+        nextPage={{ href: "/langgraph", label: "Chapter 11: A Personalized, Diagram-Based Explainer" }}
       >
         <p>
           Chapter 9 walked through what runs behind these pages. This one is about how it came to

@@ -16,6 +16,7 @@ const LINKS = [
   { href: "/enterprise", label: "Enterprise Use", chapter: "Ch. 8" },
   { href: "/architecture", label: "Architecture", chapter: "Ch. 9" },
   { href: "/building", label: "How This Was Built", chapter: "Ch. 10" },
+  { href: "/langgraph", label: "Diagram-Based Explainer", chapter: "Ch. 11" },
   { href: "/glossary", label: "Glossary" },
 ];
 

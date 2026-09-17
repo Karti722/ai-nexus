@@ -176,3 +176,13 @@ export interface EvaluateResponse {
 export function evaluateOutput(candidate: string, reference: string): Promise<EvaluateResponse> {
   return postJson<EvaluateResponse>("/api/evaluate", { candidate, reference });
 }
+
+export interface ExplainResponse {
+  mermaidDefinition: string;
+  diagramCaption: string;
+  explanation: string;
+}
+
+export function explainApp(question: string): Promise<ExplainResponse> {
+  return postJson<ExplainResponse>("/api/explain", { question });
+}

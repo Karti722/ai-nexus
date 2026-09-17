@@ -4,6 +4,7 @@ import { agentRouter } from "./routes/agent.route";
 import { cacheRouter } from "./routes/cache.route";
 import { chatRouter } from "./routes/chat.route";
 import { evalRouter } from "./routes/eval.route";
+import { explainRouter } from "./routes/explain.route";
 import { ragRouter } from "./routes/rag.route";
 import { summarizeRouter } from "./routes/summarize.route";
 import { tokenizerRouter } from "./routes/tokenizer.route";
@@ -26,6 +27,7 @@ app.use("/api/summarize", summarizeRouter);
 app.use("/api/tokenize", tokenizerRouter);
 app.use("/api/cache-sim", cacheRouter);
 app.use("/api/evaluate", evalRouter);
+app.use("/api/explain", explainRouter);
 
 async function main() {
   await seedKnowledgeBaseIfEmpty();

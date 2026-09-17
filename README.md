@@ -11,16 +11,19 @@ real, working implementations of them, not slides and not a sandboxed toy.**
 
 ## What this is
 
-AI Nexus is a textbook-styled web app: ten chapters plus an introduction and a glossary, each
+AI Nexus is a textbook-styled web app: eleven chapters plus an introduction and a glossary, each
 covering one core concept in modern applied AI engineering (large language models, retrieval-
 augmented generation, prompt engineering, AI agents, the Model Context Protocol, vector databases,
-summarization, semantic caching, output evaluation) and each backed by a genuinely working demo of
-that concept, not a mockup. Ask the chat page a question and a real Claude API call answers it.
-Ask the RAG page something and it actually retrieves from a real pgvector-backed Postgres
-database. Ask the agent to check the weather and it calls a real weather API through a real MCP
-tool server. Chapters 8, 9 and 10 then zoom out: real companies running these same patterns in
-production, a full architectural tour of the system serving these pages, and the story of how the
-whole thing was actually built.
+summarization, semantic caching, output evaluation, multi-step AI workflows) and each backed by a
+genuinely working demo of that concept, not a mockup. Ask the chat page a question and a real
+Claude API call answers it. Ask the RAG page something and it actually retrieves from a real
+pgvector-backed Postgres database. Ask the agent to check the weather and it calls a real weather
+API through a real MCP tool server. Chapters 8, 9 and 10 then zoom out: real companies running
+these same patterns in production, a full architectural tour of the system serving these pages,
+and the story of how the whole thing was actually built. Chapter 11 flips the whole premise
+around: ask it any question about how this app itself works, and it builds a real diagram and
+explanation just for that question, also reachable on its own at `/explain` for anyone who'd
+rather ask than read.
 
 It's built for two audiences at once: engineers who want to see a real, inspectable
 implementation of these concepts end to end, and newcomers who want to learn them hands-on instead
@@ -35,6 +38,7 @@ Everything beyond this page lives in **[`info/`](./info)**:
 | **[`info/codebase.md`](./info/codebase.md)** | The codebase's architecture: why it's split into four services the way it is, every tech-stack choice and its trade-offs, a file-by-file explanation of the whole repo, and how to set it up and run it on your own machine. |
 | **[`info/deployment.md`](./info/deployment.md)** | The exact steps to deploy this app: Google Cloud Run + a free Neon Postgres instance, for a genuine $0/month, written as a complete walkthrough from a blank starting point (no cloud account, nothing installed). |
 | **[`info/CI-CD.md`](./info/CI-CD.md)** | The GitHub Actions approach taken to automate that deployment, and why: Workload Identity Federation instead of a downloadable service account key, what gets rebuilt and redeployed on every push to `main`, and how to set it up yourself. |
+| **[`info/personalized-explainer-spec.md`](./info/personalized-explainer-spec.md)** | The design record for Chapter 11 / `/explain` (now built): why it's grounded in real retrieval before generating anything, why it produces Mermaid text instead of raw diagram coordinates, and why the tool exists on two separate pages. Kept in its own file so this reasoning can keep evolving without `codebase.md` growing every time it does. |
 
 If you're trying to decide where to start: `info/codebase.md` if you want to run this locally or
 understand how it's built, `info/deployment.md` if you want to put your own copy on the internet,
@@ -58,9 +62,10 @@ other way to run this (Docker Compose, one service at a time) are in `info/codeb
 
 React/Next.js (TypeScript) frontend · Node.js/Express (TypeScript) API orchestrator · Python/FastAPI
 microservice · PostgreSQL + pgvector · a standalone Model Context Protocol server · Anthropic Claude
-(chat/RAG/agent/tokenization) · Voyage AI (embeddings) · WeatherAPI.com (the agent's one real
-external tool) · Docker + Docker Compose · deployed on Google Cloud Run, with GitHub Actions
-automating every redeploy on push to `main` (see `info/deployment.md` and `info/CI-CD.md`).
+(chat/RAG/agent/tokenization) · LangChain + LangGraph (Chapter 11's real, multi-step workflow) ·
+Mermaid.js (Chapter 11's diagram rendering) · Voyage AI (embeddings) · WeatherAPI.com (the agent's
+one real external tool) · Docker + Docker Compose · deployed on Google Cloud Run, with GitHub
+Actions automating every redeploy on push to `main` (see `info/deployment.md` and `info/CI-CD.md`).
 
 `info/codebase.md` section 2 explains why each of these was chosen over the alternatives that were
 actually considered, not just what was picked.
@@ -70,8 +75,8 @@ actually considered, not just what was picked.
 ```
 ai-nexus/
 ├── README.md            # you are here
-├── info/                 # codebase.md, deployment.md, CI-CD.md
-├── frontend/              # Next.js app — the ten chapters + glossary
+├── info/                 # codebase.md, deployment.md, CI-CD.md, personalized-explainer-spec.md
+├── frontend/              # Next.js app — the eleven chapters + glossary
 ├── backend/               # Express API — orchestrates everything below
 ├── python-service/         # FastAPI — embeddings, summarization, caching, eval
 ├── mcp-server/              # standalone Model Context Protocol server

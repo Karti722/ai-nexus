@@ -64,6 +64,15 @@ const TERMS = [
     },
   },
   {
+    term: "LangGraph",
+    definition:
+      "A framework, built on LangChain, for defining a multi-step AI workflow as an explicit graph of steps and connections rather than one single prompt or one fixed loop. See Chapter 11.",
+    source: {
+      label: "LangChain, \"LangGraph\": official documentation",
+      href: "https://langchain-ai.github.io/langgraph/",
+    },
+  },
+  {
     term: "MCP (Model Context Protocol)",
     definition:
       "An open standard that lets any AI application discover and call tools exposed by any external service, without a custom integration for every pairing. See Chapter 4.",
@@ -157,10 +166,10 @@ export default function GlossaryPage() {
         eyebrow="Reference"
         title="Glossary of Key Terms"
         pageNumber="Glossary"
-        prevPage={{ href: "/building", label: "Chapter 10: How This Tutorial Was Built" }}
+        prevPage={{ href: "/langgraph", label: "Chapter 11: A Personalized, Diagram-Based Explainer" }}
       >
         <p>
-          Every term introduced across the ten chapters of this tutorial, gathered in one place.
+          Every term introduced across the eleven chapters of this tutorial, gathered in one place.
           Each entry links back to the chapter where it's explained in full, and to a real source
           where one exists.
         </p>
