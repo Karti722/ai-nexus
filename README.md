@@ -39,6 +39,7 @@ Everything beyond this page lives in **[`info/`](./info)**:
 | **[`info/deployment.md`](./info/deployment.md)** | The exact steps to deploy this app: Google Cloud Run + a free Neon Postgres instance, for a genuine $0/month, written as a complete walkthrough from a blank starting point (no cloud account, nothing installed). |
 | **[`info/CI-CD.md`](./info/CI-CD.md)** | The GitHub Actions approach taken to automate that deployment, and why: Workload Identity Federation instead of a downloadable service account key, what gets rebuilt and redeployed on every push to `main`, and how to set it up yourself. |
 | **[`info/personalized-explainer-spec.md`](./info/personalized-explainer-spec.md)** | The design record for Chapter 11 / `/explain` (now built): why it's grounded in real retrieval before generating anything, why it produces Mermaid text instead of raw diagram coordinates, and why the tool exists on two separate pages. Kept in its own file so this reasoning can keep evolving without `codebase.md` growing every time it does. |
+| **[`info/knowledge-base.md`](./info/knowledge-base.md)** | A from-scratch walkthrough of adding, editing, or removing an article from the RAG knowledge base with `npm run kb`, including what a chunk/embedding actually is, which two database tables are involved, and how to test a change safely before it hits the live database. |
 
 If you're trying to decide where to start: `info/codebase.md` if you want to run this locally or
 understand how it's built, `info/deployment.md` if you want to put your own copy on the internet,
@@ -75,7 +76,7 @@ actually considered, not just what was picked.
 ```
 ai-nexus/
 ├── README.md            # you are here
-├── info/                 # codebase.md, deployment.md, CI-CD.md, personalized-explainer-spec.md
+├── info/                 # codebase.md, deployment.md, CI-CD.md, personalized-explainer-spec.md, knowledge-base.md
 ├── frontend/              # Next.js app — the eleven chapters + glossary
 ├── backend/               # Express API — orchestrates everything below
 ├── python-service/         # FastAPI — embeddings, summarization, caching, eval

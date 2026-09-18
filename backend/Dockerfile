@@ -21,7 +21,6 @@ WORKDIR /app
 COPY --from=backend-build /app/backend/node_modules ./backend/node_modules
 COPY --from=backend-build /app/backend/dist ./backend/dist
 COPY --from=backend-build /app/backend/package*.json ./backend/
-COPY --from=backend-build /app/backend/data ./backend/data
 
 COPY --from=mcp-build /app/mcp-server/dist ./mcp-server/dist
 COPY --from=mcp-build /app/mcp-server/node_modules ./mcp-server/node_modules

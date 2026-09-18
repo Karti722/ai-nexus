@@ -70,6 +70,18 @@ function ensureReady(): Promise<void> {
         CREATE UNIQUE INDEX IF NOT EXISTS chunks_source_text_unique
         ON chunks (source, text)
       `);
+      // Full article title + content, keyed by the same `source` filename
+      // `chunks` uses. Lets the knowledge base be served (titles on every RAG
+      // answer, full articles for the "browse the knowledge base" viewer)
+      // without ever touching backend/data/knowledge-base on disk at
+      // runtime: that directory only needs to exist at seed time.
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS documents (
+          source TEXT PRIMARY KEY,
+          title TEXT NOT NULL,
+          content TEXT NOT NULL
+        )
+      `);
     })();
   }
   return readyPromise;
@@ -89,6 +101,19 @@ export async function clearStore(): Promise<void> {
   await pool.query("DELETE FROM chunks");
 }
 
+/** Removes every chunk for one source article, so re-adding it (after an
+ * edit that changes chunk boundaries) can't leave stale chunks behind
+ * alongside the new ones. */
+export async function deleteChunksBySource(source: string): Promise<void> {
+  await ensureReady();
+  await pool.query("DELETE FROM chunks WHERE source = $1", [source]);
+}
+
+export async function deleteDocument(source: string): Promise<void> {
+  await ensureReady();
+  await pool.query("DELETE FROM documents WHERE source = $1", [source]);
+}
+
 export async function addChunk(source: string, text: string, embedding: number[]): Promise<void> {
   await ensureReady();
   // ON CONFLICT DO NOTHING: two concurrent seed attempts inserting the same
@@ -104,6 +129,38 @@ export async function countChunks(): Promise<number> {
   await ensureReady();
   const { rows } = await pool.query<{ count: string }>("SELECT COUNT(*) AS count FROM chunks");
   return Number(rows[0].count);
+}
+
+export interface StoredDocument {
+  source: string;
+  title: string;
+  content: string;
+}
+
+export async function upsertDocument(source: string, title: string, content: string): Promise<void> {
+  await ensureReady();
+  await pool.query(
+    `INSERT INTO documents (source, title, content) VALUES ($1, $2, $3)
+     ON CONFLICT (source) DO UPDATE SET title = EXCLUDED.title, content = EXCLUDED.content`,
+    [source, title, content]
+  );
+}
+
+export async function listDocuments(): Promise<{ source: string; title: string }[]> {
+  await ensureReady();
+  const { rows } = await pool.query<{ source: string; title: string }>(
+    "SELECT source, title FROM documents ORDER BY source"
+  );
+  return rows;
+}
+
+export async function getDocument(source: string): Promise<StoredDocument | null> {
+  await ensureReady();
+  const { rows } = await pool.query<StoredDocument>(
+    "SELECT source, title, content FROM documents WHERE source = $1",
+    [source]
+  );
+  return rows[0] ?? null;
 }
 
 export async function searchSimilar(queryEmbedding: number[], topK = 4): Promise<SearchResult[]> {

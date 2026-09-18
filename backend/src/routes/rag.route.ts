@@ -32,17 +32,17 @@ ragRouter.post("/query", async (req, res) => {
 
     const answer = await llmClient.chat([{ role: "user", content: question }], systemPrompt);
 
-    res.json({
-      answer,
-      sources: matches.map((m, i) => ({
+    const sources = await Promise.all(
+      matches.map(async (m, i) => ({
         citation: i + 1,
         source: m.source,
-        title: getKnowledgeBaseTitle(m.source),
+        title: await getKnowledgeBaseTitle(m.source),
         text: m.text,
         similarity: Number(m.score.toFixed(3)),
-      })),
-      mock: config.isMockMode,
-    });
+      }))
+    );
+
+    res.json({ answer, sources, mock: config.isMockMode });
   } catch (err) {
     console.error("[rag] error:", err);
     res.status(500).json({ error: `Failed to answer the question: ${describeError(err)}` });
@@ -54,16 +54,16 @@ ragRouter.post("/query", async (req, res) => {
  * Lists every article in the knowledge base (id + display title) so the
  * frontend can offer a "browse the knowledge base yourself" picker.
  */
-ragRouter.get("/sources", (_req, res) => {
-  res.json({ sources: listKnowledgeBaseFiles() });
+ragRouter.get("/sources", async (_req, res) => {
+  res.json({ sources: await listKnowledgeBaseFiles() });
 });
 
 /**
  * GET /api/rag/sources/:source
  * Full content of a single knowledge-base article, for the same browser.
  */
-ragRouter.get("/sources/:source", (req, res) => {
-  const file = readKnowledgeBaseFile(req.params.source);
+ragRouter.get("/sources/:source", async (req, res) => {
+  const file = await readKnowledgeBaseFile(req.params.source);
   if (!file) {
     return res.status(404).json({ error: "That knowledge base article doesn't exist." });
   }

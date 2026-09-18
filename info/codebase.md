@@ -18,7 +18,6 @@ together by using them directly.
 | Tokenization & cost estimation | `backend/src/routes/tokenizer.route.ts` (real Claude token count via the Anthropic API) + `/tokenizer` page |
 | Semantic caching | `python-service/app/semantic_cache.py` + `/cache` page |
 | Evaluating AI outputs | `python-service/app/eval.py` + `/eval` page |
-| Multi-step AI workflows (LangChain / LangGraph) | `backend/src/explainer/buildAndRun.ts` (a real `StateGraph`) + `/langgraph` and `/explain` pages |
 | Python | `python-service/` (FastAPI microservice; see section 1 for what it does and why) |
 | JavaScript/TypeScript, Node.js | `backend/`, `mcp-server/` |
 | React/Next.js | `frontend/` |
@@ -239,8 +238,6 @@ ai-nexus/
 │       │   └── cacheClient.ts     # calls python-service's /cache-sim
 │       ├── eval/
 │       │   └── evalClient.ts      # calls python-service's /evaluate
-│       ├── explainer/             # Ch.11: personalized, diagram-based explainer
-│       │   └── buildAndRun.ts     # static 3-node LangGraph StateGraph: retrieve -> diagram -> explain
 │       ├── routes/
 │       │   ├── chat.route.ts      # POST /api/chat
 │       │   ├── rag.route.ts       # POST /api/rag/query
@@ -248,8 +245,7 @@ ai-nexus/
 │       │   ├── summarize.route.ts # POST /api/summarize (mode: "abstractive" calls llmClient, "extractive" calls python-service)
 │       │   ├── tokenizer.route.ts # POST /api/tokenize (calls Anthropic's real count_tokens API directly)
 │       │   ├── cache.route.ts     # POST /api/cache-sim
-│       │   ├── eval.route.ts      # POST /api/evaluate
-│       │   └── explain.route.ts   # POST /api/explain
+│       │   └── eval.route.ts      # POST /api/evaluate
 │       └── utils/
 │           └── errors.ts          # extracts a real, user-facing message from thrown errors
 │
@@ -292,8 +288,7 @@ ai-nexus/
     │   ├── Analogy.tsx
     │   ├── CaseStudy.tsx
     │   ├── Sources.tsx
-    │   ├── ArchitectureDiagram.tsx
-    │   └── AppExplainer.tsx        # Ch.11: the one real implementation behind both /explain and /langgraph
+    │   └── ArchitectureDiagram.tsx
     └── app/
         ├── layout.tsx              # shared shell (nav + page container)
         ├── globals.css             # Tailwind + shared utility classes
@@ -309,8 +304,6 @@ ai-nexus/
         ├── enterprise/page.tsx      # Ch.8: real-world case studies
         ├── architecture/page.tsx    # Ch.9: this system's own architecture
         ├── building/page.tsx        # Ch.10: how this tutorial was built
-        ├── langgraph/page.tsx       # Ch.11: AppExplainer wrapped in TextbookPage + the LangGraph explanation
-        ├── explain/page.tsx         # the same AppExplainer, bare, no textbook framing
         └── glossary/page.tsx        # reference: every term, linked back to its chapter
 ```
 
@@ -702,15 +695,11 @@ Docker Compose path with `docker compose down`, which stops everything including
 ## 7. Demo: what you'll see when you run it
 
 **Landing page (`/`)**: a printed-textbook-styled table of contents listing the introduction, all
-eleven chapters and the glossary, each linking straight to its page. The chapters are grouped
-under four part labels (Foundations, Applied Techniques, Beyond the Model, Ask the App), a
-homepage-only navigational grouping: no individual chapter page, and nothing elsewhere in the
-app, refers to these parts, each chapter's own eyebrow is still just "Chapter N." Each entry also
-has a large faint serif numeral to its left, purely decorative. A small callout right below the
-tagline, before the table of contents itself, links to `/explain`, Chapter 11's tool with no
-textbook framing attached, specifically for a visitor who'd rather ask a question than read
-(see section 9 below and `info/personalized-explainer-spec.md` for why this is a separate page
-from Chapter 11 rather than the same page doing double duty).
+ten chapters and the glossary, each linking straight to its page. The ten chapters are grouped
+under three part labels (Foundations, Applied Techniques, Beyond the Model), a homepage-only
+navigational grouping: no individual chapter page, and nothing elsewhere in the app, refers to
+these parts, each chapter's own eyebrow is still just "Chapter N." Each entry also has a large
+faint serif numeral to its left, purely decorative.
 
 **Introduction (`/introduction`)**: front matter, not a numbered chapter: why this guide exists,
 the gap between what universities teach and what applied AI engineering actually looks like in
@@ -761,13 +750,7 @@ this very system, including a diagram of how the four services talk to each othe
 **Chapter 10: How This Tutorial Was Built (`/building`)**: the story of how an AI coding
 assistant and a person built this app together, iteration by iteration.
 
-**Chapter 11: A Personalized, Diagram-Based Explainer (`/langgraph`)**: ask any real question
-about how this app works and get back a real Mermaid diagram plus a written explanation, both
-generated specifically for that question through a real, three-step LangGraph workflow (see
-section 9 below). The exact same tool, without this chapter's own LangChain/LangGraph
-explanation attached, is also reachable directly at `/explain`.
-
-**Glossary (`/glossary`)**: every term introduced across all eleven chapters, each linked back to
+**Glossary (`/glossary`)**: every term introduced across all ten chapters, each linked back to
 where it's explained and, where one exists, to a real primary source.
 
 ---
@@ -813,44 +796,3 @@ where it's explained and, where one exists, to a real primary source.
   distinction stays clean: see Chapter 5's own prose for why extractive and abstractive
   summarization are a genuinely different cost/trust trade-off, not one being strictly better than
   the other.
-
----
-
-## 9. Chapter 11: a personalized, diagram-based explainer
-
-Two pages share one real implementation, deliberately, not by accident: `/explain` is a bare
-page with no textbook framing (for a possibly-confused first-time visitor who hasn't chosen to
-read a chapter yet), and `/langgraph` is Chapter 11 proper, the same tool embedded inside the
-usual `TextbookPage` shell alongside an explanation of the LangChain/LangGraph concepts it's
-built with. Both render `frontend/components/AppExplainer.tsx`, one component, two wrappers.
-
-Ask it a real question and three things happen, in a fixed order, via a real
-`@langchain/langgraph` `StateGraph` (`backend/src/explainer/buildAndRun.ts`): retrieve real
-passages from the exact same knowledge base and vector store Chapter 3's RAG and Chapter 4's
-agent already search, generate a Mermaid diagram *definition* (structured text, not raw
-coordinates) from those real passages, then generate a written explanation from the same
-passages. Mermaid.js, not the model, turns that text into the actual diagram
-(`AppExplainer.tsx`, client-side, via `mermaid.parse()`/`mermaid.render()`); a plain-text
-fallback appears if a generated definition ever fails to parse, so an occasional bad diagram
-degrades to "no diagram, but the real explanation is still there" rather than a broken page. A
-"Diagram" heading sits directly above it (the diagram originally shipped with no label at all)
-with a one-sentence caption describing what *that specific diagram* actually depicts, generated
-by the same `diagram` node in the same call that produces the Mermaid definition itself, not a
-generic sentence repeated for every question. Reading the explanation aloud is optional,
-client-side only (the browser's own
-`SpeechSynthesis` API), and there's no speech-to-text: the reader still types their question,
-the same reliable input every other chapter already uses. Full reasoning for every one of
-these choices is in **[`info/personalized-explainer-spec.md`](./personalized-explainer-spec.md)**,
-kept as a standing design record rather than merged into this file, on purpose: it can go on
-explaining *why* the feature looks the way it does without this file needing to grow every
-time that reasoning gets refined further.
-
-This static, three-node graph is a genuinely different, simpler shape than the dynamic,
-user-configurable agent-graph prototype that came before it (built, then removed for being too
-confusing to use with no guidance): every node name here is a compile-time string literal, so
-unlike that prototype, nothing in this file needed the `as any` escape hatch LangGraph's TS
-types otherwise require once node names are only known at runtime. The same `top_p`
-library-compatibility issue found during that earlier prototype (`@langchain/anthropic`
-doesn't yet recognize `claude-sonnet-5`, so it sends an invalid sentinel value unless the
-`ChatAnthropic` instance's `topP` is forced to `undefined` directly) reappeared here and got
-the same fix.

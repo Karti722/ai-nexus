@@ -2,10 +2,17 @@ import fs from "fs";
 import path from "path";
 import { chunkText } from "./chunker";
 import { embedTexts } from "./embeddingsClient";
-import { addChunk, countChunks, isStoreEmpty } from "./vectorStore";
+import { addChunk, countChunks, isStoreEmpty, upsertDocument } from "./vectorStore";
 
 // See vectorStore.ts for why this is "../../data" rather than "../data".
 const KB_DIR = path.resolve(__dirname, "../../data/knowledge-base");
+
+/** Pulls a human-friendly title from a markdown file's first `# Heading`,
+ * falling back to the filename if one isn't found. */
+function extractTitle(markdown: string, fallback: string): string {
+  const heading = markdown.match(/^#\s+(.+)$/m);
+  return heading ? heading[1].trim() : fallback;
+}
 
 /** Loads every markdown file in data/knowledge-base, chunks it, embeds the
  * chunks and writes them into the vector store. Runs once at server
@@ -28,6 +35,7 @@ export async function seedKnowledgeBaseIfEmpty(): Promise<void> {
   for (const file of files) {
     const fullPath = path.join(KB_DIR, file);
     const raw = fs.readFileSync(fullPath, "utf-8");
+    await upsertDocument(file, extractTitle(raw, file), raw);
     for (const text of chunkText(raw)) {
       allChunks.push({ source: file, text });
     }
