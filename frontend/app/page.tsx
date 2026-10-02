@@ -98,7 +98,7 @@ export default function HomePage() {
       </h1>
 
       <p className="mt-3 font-display text-sm italic text-paper-ink/50 sm:text-base">
-        created by{" "}
+        by{" "}
         <a
           href="https://kartikeyakumaria.com/"
           target="_blank"
