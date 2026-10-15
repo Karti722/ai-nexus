@@ -6,6 +6,7 @@ import { SourceCitation } from "@/components/SourceCitation";
 import { KnowledgeBaseBrowser } from "@/components/KnowledgeBaseBrowser";
 import { Analogy } from "@/components/Analogy";
 import { TextbookPage } from "@/components/TextbookPage";
+import { RagIllustration } from "@/components/ChapterIllustrations";
 import { Sources } from "@/components/Sources";
 
 const SAMPLE_QUESTIONS = [
@@ -41,7 +42,106 @@ export default function RagPage() {
 
   return (
     <div className="space-y-10">
-      <div className="space-y-3">
+      <TextbookPage
+        eyebrow="Chapter 3"
+        title="Retrieval-Augmented Generation (RAG)"
+        pageNumber="Page 3"
+        prevPage={{ href: "/chat", label: "Chapter 2: Large Language Models" }}
+        nextPage={{ href: "/agent", label: "Chapter 4: AI Agents and Tool Use" }}
+      >
+        <RagIllustration />
+        <a
+          href="#try-it"
+          className="mx-auto block w-fit text-sm text-paper-ink/60 underline decoration-paper-ink/25 decoration-dotted underline-offset-4 transition hover:text-brand-700 hover:decoration-brand-500"
+        >
+          ↓ Try it yourself
+        </a>
+        <p>
+          A language model's knowledge is frozen at whatever point its training data was collected,
+          and it has no built-in way to consult anything outside that data. This creates two related
+          problems: it cannot answer accurately about information that didn't exist at training
+          time, or that was never public in the first place, and when asked about something it
+          doesn't actually know, it tends to produce a confident, fluent-sounding answer anyway, a
+          failure mode usually called hallucination, since the model isn't lying so much as filling
+          a gap the only way it knows how.
+        </p>
+
+        <p>
+          Retrieval-Augmented Generation, or RAG, addresses this by splitting the task into two
+          stages instead of relying on the model alone. A <em>retrieval</em> stage first searches a
+          separate collection of documents for the passages most relevant to the question being
+          asked. A <em>generation</em> stage then hands those retrieved passages to the language
+          model as part of its instructions, alongside the original question, and asks it to answer
+          using only that supplied material. The model is no longer answering purely from memory;
+          it's reading source material at the moment it responds, the same way a person might check
+          a reference before answering rather than guessing.
+        </p>
+
+        <p>
+          The retrieval stage itself works through embeddings. An embedding is a list of numbers
+          that represents the meaning of a piece of text as a position in a high-dimensional space,
+          produced by a model trained so that texts with similar meaning end up positioned close
+          together, and unrelated texts end up far apart. Every passage in the document collection
+          is converted into an embedding once, ahead of time, and stored. When a question arrives,
+          it's converted into an embedding the same way, and the system finds the passages whose
+          embeddings sit closest to the question's, typically using cosine similarity, a measure
+          of how closely two of these positions point in the same direction. The closest matches are
+          the passages judged most relevant.
+        </p>
+
+        <Analogy>
+          Think of an embedding as a coordinate on a map, except the map represents meaning instead
+          of geography. Passages about closely related ideas land near each other on this map, and
+          unrelated passages land far apart, the same way two towns close together on an ordinary
+          map tend to be a short drive apart, while towns on opposite coasts aren't. Searching by
+          embedding is like asking "what's nearby?" instead of demanding an exact-word match.
+        </Analogy>
+
+        <p>
+          The demo below only has a few dozen passages to search, few enough that comparing a
+          question's embedding directly against every stored one is instant either way. Real
+          systems often store millions or billions of embeddings, where checking every single one
+          for every question stops being practical. Production vector databases handle this with an
+          approximate index, most commonly one called <strong>HNSW</strong> (Hierarchical Navigable
+          Small World), which arranges embeddings into a graph structured so a search only has to
+          follow a handful of connections to land near the true closest matches, rather than
+          visiting every stored embedding directly. That trades a small, usually unnoticeable amount
+          of accuracy for a very large speed gain at scale, exactly the trade-off Chapter 8 shows a
+          real company making, and exactly the index this tutorial's own vector database actually
+          runs, covered in more detail in Chapter 9.
+        </p>
+
+        <p>
+          Finally, the model is instructed to answer strictly from the retrieved passages and to
+          cite which passage supports each part of its answer, so instead of taking the response on
+          faith, you can check exactly where each claim came from. That's what you'll see below: the
+          answer itself, and the numbered source passages underneath it that were retrieved to
+          produce that answer.
+        </p>
+
+        <Sources
+          items={[
+            {
+              label: "Mikolov et al., \"Efficient Estimation of Word Representations in Vector Space\" (2013): the word2vec paper that popularized dense text embeddings",
+              href: "https://arxiv.org/abs/1301.3781",
+            },
+            {
+              label: "Lewis et al., \"Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks\" (2020): the paper that coined \"RAG\"",
+              href: "https://arxiv.org/abs/2005.11401",
+            },
+            {
+              label: "Malkov & Yashunin, \"Efficient and Robust Approximate Nearest Neighbor Search Using HNSW Graphs\" (2016)",
+              href: "https://arxiv.org/abs/1603.09320",
+            },
+            {
+              label: "pgvector: the open-source Postgres extension that implements this in a real, production vector database",
+              href: "https://github.com/pgvector/pgvector",
+            },
+          ]}
+        />
+      </TextbookPage>
+
+      <div id="try-it" className="scroll-mt-20 space-y-3">
         <h2 className="font-display text-xs font-bold uppercase tracking-[0.2em] text-paper-ink/50">
           Try it yourself
         </h2>
@@ -132,98 +232,6 @@ export default function RagPage() {
         </h2>
         <KnowledgeBaseBrowser />
       </div>
-
-      <TextbookPage
-        eyebrow="Chapter 3"
-        title="Retrieval-Augmented Generation (RAG)"
-        pageNumber="Page 3"
-        prevPage={{ href: "/chat", label: "Chapter 2: Large Language Models" }}
-        nextPage={{ href: "/agent", label: "Chapter 4: AI Agents and Tool Use" }}
-      >
-        <p>
-          A language model's knowledge is frozen at whatever point its training data was collected,
-          and it has no built-in way to consult anything outside that data. This creates two related
-          problems: it cannot answer accurately about information that didn't exist at training
-          time, or that was never public in the first place, and when asked about something it
-          doesn't actually know, it tends to produce a confident, fluent-sounding answer anyway, a
-          failure mode usually called hallucination, since the model isn't lying so much as filling
-          a gap the only way it knows how.
-        </p>
-
-        <p>
-          Retrieval-Augmented Generation, or RAG, addresses this by splitting the task into two
-          stages instead of relying on the model alone. A <em>retrieval</em> stage first searches a
-          separate collection of documents for the passages most relevant to the question being
-          asked. A <em>generation</em> stage then hands those retrieved passages to the language
-          model as part of its instructions, alongside the original question, and asks it to answer
-          using only that supplied material. The model is no longer answering purely from memory;
-          it's reading source material at the moment it responds, the same way a person might check
-          a reference before answering rather than guessing.
-        </p>
-
-        <p>
-          The retrieval stage itself works through embeddings. An embedding is a list of numbers
-          that represents the meaning of a piece of text as a position in a high-dimensional space,
-          produced by a model trained so that texts with similar meaning end up positioned close
-          together, and unrelated texts end up far apart. Every passage in the document collection
-          is converted into an embedding once, ahead of time, and stored. When a question arrives,
-          it's converted into an embedding the same way, and the system finds the passages whose
-          embeddings sit closest to the question's, typically using cosine similarity, a measure
-          of how closely two of these positions point in the same direction. The closest matches are
-          the passages judged most relevant.
-        </p>
-
-        <Analogy>
-          Think of an embedding as a coordinate on a map, except the map represents meaning instead
-          of geography. Passages about closely related ideas land near each other on this map, and
-          unrelated passages land far apart, the same way two towns close together on an ordinary
-          map tend to be a short drive apart, while towns on opposite coasts aren't. Searching by
-          embedding is like asking "what's nearby?" instead of demanding an exact-word match.
-        </Analogy>
-
-        <p>
-          The demo above only has a few dozen passages to search, few enough that comparing a
-          question's embedding directly against every stored one is instant either way. Real
-          systems often store millions or billions of embeddings, where checking every single one
-          for every question stops being practical. Production vector databases handle this with an
-          approximate index, most commonly one called <strong>HNSW</strong> (Hierarchical Navigable
-          Small World), which arranges embeddings into a graph structured so a search only has to
-          follow a handful of connections to land near the true closest matches, rather than
-          visiting every stored embedding directly. That trades a small, usually unnoticeable amount
-          of accuracy for a very large speed gain at scale, exactly the trade-off Chapter 8 shows a
-          real company making, and exactly the index this tutorial's own vector database actually
-          runs, covered in more detail in Chapter 9.
-        </p>
-
-        <p>
-          Finally, the model is instructed to answer strictly from the retrieved passages and to
-          cite which passage supports each part of its answer, so instead of taking the response on
-          faith, you can check exactly where each claim came from. That's what you should have just
-          seen above: the answer itself, and the numbered source passages underneath it that were
-          retrieved to produce that answer.
-        </p>
-
-        <Sources
-          items={[
-            {
-              label: "Mikolov et al., \"Efficient Estimation of Word Representations in Vector Space\" (2013): the word2vec paper that popularized dense text embeddings",
-              href: "https://arxiv.org/abs/1301.3781",
-            },
-            {
-              label: "Lewis et al., \"Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks\" (2020): the paper that coined \"RAG\"",
-              href: "https://arxiv.org/abs/2005.11401",
-            },
-            {
-              label: "Malkov & Yashunin, \"Efficient and Robust Approximate Nearest Neighbor Search Using HNSW Graphs\" (2016)",
-              href: "https://arxiv.org/abs/1603.09320",
-            },
-            {
-              label: "pgvector: the open-source Postgres extension that implements this in a real, production vector database",
-              href: "https://github.com/pgvector/pgvector",
-            },
-          ]}
-        />
-      </TextbookPage>
     </div>
   );
 }

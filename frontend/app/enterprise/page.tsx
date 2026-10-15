@@ -1,4 +1,5 @@
 import { TextbookPage } from "@/components/TextbookPage";
+import { EnterpriseIllustration } from "@/components/ChapterIllustrations";
 import { CaseStudy } from "@/components/CaseStudy";
 import { Sources } from "@/components/Sources";
 
@@ -12,6 +13,7 @@ export default function EnterprisePage() {
         prevPage={{ href: "/eval", label: "Chapter 7: Evaluating AI Outputs" }}
         nextPage={{ href: "/architecture", label: "Chapter 9: The System Behind This Tutorial" }}
       >
+        <EnterpriseIllustration />
         <p>
           Everything covered in Chapters 2 through 4 (a conversation with a model, retrieval
           grounding an answer in real documents, an agent deciding which tool to reach for) isn't

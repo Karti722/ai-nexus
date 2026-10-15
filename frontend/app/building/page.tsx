@@ -1,4 +1,5 @@
 import { TextbookPage } from "@/components/TextbookPage";
+import { BuildingIllustration } from "@/components/ChapterIllustrations";
 import { Analogy } from "@/components/Analogy";
 
 export default function BuildingPage() {
@@ -11,6 +12,7 @@ export default function BuildingPage() {
         prevPage={{ href: "/architecture", label: "Chapter 9: The System Behind This Tutorial" }}
         nextPage={{ href: "/langgraph", label: "Chapter 11: A Personalized, Diagram-Based Explainer" }}
       >
+        <BuildingIllustration />
         <p>
           Chapter 9 walked through what runs behind these pages. This one is about how it came to
           exist in the first place: every chapter, every diagram and every part of the system

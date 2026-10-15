@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { evaluateOutput, type EvaluateResponse } from "@/lib/api";
 import { TextbookPage } from "@/components/TextbookPage";
+import { EvalIllustration } from "@/components/ChapterIllustrations";
 import { Analogy } from "@/components/Analogy";
 import { Sources } from "@/components/Sources";
 
@@ -48,7 +49,85 @@ export default function EvalPage() {
 
   return (
     <div className="space-y-10">
-      <div className="space-y-3">
+      <TextbookPage
+        eyebrow="Chapter 7"
+        title="Evaluating AI Outputs"
+        pageNumber="Page 7"
+        prevPage={{ href: "/cache", label: "Chapter 6: Semantic Caching" }}
+        nextPage={{ href: "/enterprise", label: "Chapter 8: These Concepts in the Real World" }}
+      >
+        <EvalIllustration />
+        <a
+          href="#try-it"
+          className="mx-auto block w-fit text-sm text-paper-ink/60 underline decoration-paper-ink/25 decoration-dotted underline-offset-4 transition hover:text-brand-700 hover:decoration-brand-500"
+        >
+          ↓ Try it yourself
+        </a>
+        <p>
+          Chapter 6 cut cost with a semantic cache, but a cache hit is only a win if the cached
+          answer was actually correct for the new question, not merely similar-sounding. More
+          broadly, every change to a prompt, a model or a retrieval strategy raises the same
+          question: did this make the system better or worse? Eyeballing a handful of outputs
+          doesn't scale and doesn't catch regressions reliably. <strong>Evaluation</strong> is the
+          discipline of scoring outputs against a reference answer systematically enough to actually
+          trust the result.
+        </p>
+
+        <h2 className="font-display text-lg font-bold text-paper-ink">
+          <span className="text-brand-600">7.1</span> Three Signals, Cheapest First
+        </h2>
+        <p>
+          Production eval pipelines often use another LLM as a judge for nuanced grading, but a
+          model call is exactly the expensive thing Chapters 1 and 6 were trying to avoid, so real
+          pipelines typically run cheaper, deterministic checks first and reserve the model-as-judge
+          step for cases that need it. This demo runs three of those cheaper signals:{" "}
+          <strong>exact match</strong> (did the answer match character-for-character), a{" "}
+          <strong>ROUGE-L</strong> overlap score (the longest sequence of words the candidate and
+          reference share, in order; a standard, decades-old summarization and translation metric)
+          and <strong>semantic similarity</strong> (the same embedding-based cosine similarity from
+          Chapters 3 and 6, catching a correct answer that happens to be phrased differently).
+        </p>
+        <p>
+          Try the three samples below. The exact-match pair scores a perfect 1.0 on everything. The
+          paraphrase scores low on exact match and ROUGE-L (neither cares about meaning, only
+          shared words in order) while semantic similarity gives it partial credit for saying the
+          same thing differently. The off-topic pair scores near zero across the board. No single
+          signal is sufficient on its own, which is exactly why a real harness combines several.
+        </p>
+
+        <Analogy>
+          Grading a short-answer exam by checking for the exact expected sentence would fail every
+          student who explained the idea correctly in their own words. Grading it by word overlap
+          alone would reward a student who strings together the right vocabulary in a nonsensical
+          order. A real grader, human or automated, checks several signals together, the same way
+          this demo does before ever reaching for something as expensive as another model's
+          judgment.
+        </Analogy>
+
+        <p>
+          Taken together, Chapter 1's token economics, Chapter 6's caching and this chapter's
+          evaluation are the applied-engineering thread running underneath the rest of this
+          tutorial: knowing what a request costs, cutting that cost without silently breaking
+          correctness, and measuring correctness well enough to know the difference. Chapter 8
+          picks the story back up with the real-world deployments, at the millions-of-users scale,
+          where getting exactly this right (or wrong) has real, measured consequences.
+        </p>
+
+        <Sources
+          items={[
+            {
+              label: "Lin, \"ROUGE: A Package for Automatic Evaluation of Summaries\" (2004)",
+              href: "https://aclanthology.org/W04-1013/",
+            },
+            {
+              label: "Cosine similarity, Wikipedia",
+              href: "https://en.wikipedia.org/wiki/Cosine_similarity",
+            },
+          ]}
+        />
+      </TextbookPage>
+
+      <div id="try-it" className="scroll-mt-20 space-y-3">
         <h2 className="font-display text-xs font-bold uppercase tracking-[0.2em] text-paper-ink/50">
           Try it yourself
         </h2>
@@ -150,77 +229,6 @@ export default function EvalPage() {
           </div>
         )}
       </div>
-
-      <TextbookPage
-        eyebrow="Chapter 7"
-        title="Evaluating AI Outputs"
-        pageNumber="Page 7"
-        prevPage={{ href: "/cache", label: "Chapter 6: Semantic Caching" }}
-        nextPage={{ href: "/enterprise", label: "Chapter 8: These Concepts in the Real World" }}
-      >
-        <p>
-          Chapter 6 cut cost with a semantic cache, but a cache hit is only a win if the cached
-          answer was actually correct for the new question, not merely similar-sounding. More
-          broadly, every change to a prompt, a model or a retrieval strategy raises the same
-          question: did this make the system better or worse? Eyeballing a handful of outputs
-          doesn't scale and doesn't catch regressions reliably. <strong>Evaluation</strong> is the
-          discipline of scoring outputs against a reference answer systematically enough to actually
-          trust the result.
-        </p>
-
-        <h2 className="font-display text-lg font-bold text-paper-ink">
-          <span className="text-brand-600">7.1</span> Three Signals, Cheapest First
-        </h2>
-        <p>
-          Production eval pipelines often use another LLM as a judge for nuanced grading, but a
-          model call is exactly the expensive thing Chapters 1 and 6 were trying to avoid, so real
-          pipelines typically run cheaper, deterministic checks first and reserve the model-as-judge
-          step for cases that need it. This demo runs three of those cheaper signals:{" "}
-          <strong>exact match</strong> (did the answer match character-for-character), a{" "}
-          <strong>ROUGE-L</strong> overlap score (the longest sequence of words the candidate and
-          reference share, in order; a standard, decades-old summarization and translation metric)
-          and <strong>semantic similarity</strong> (the same embedding-based cosine similarity from
-          Chapters 3 and 6, catching a correct answer that happens to be phrased differently).
-        </p>
-        <p>
-          Try the three samples above. The exact-match pair scores a perfect 1.0 on everything. The
-          paraphrase scores low on exact match and ROUGE-L (neither cares about meaning, only
-          shared words in order) while semantic similarity gives it partial credit for saying the
-          same thing differently. The off-topic pair scores near zero across the board. No single
-          signal is sufficient on its own, which is exactly why a real harness combines several.
-        </p>
-
-        <Analogy>
-          Grading a short-answer exam by checking for the exact expected sentence would fail every
-          student who explained the idea correctly in their own words. Grading it by word overlap
-          alone would reward a student who strings together the right vocabulary in a nonsensical
-          order. A real grader, human or automated, checks several signals together, the same way
-          this demo does before ever reaching for something as expensive as another model's
-          judgment.
-        </Analogy>
-
-        <p>
-          Taken together, Chapter 1's token economics, Chapter 6's caching and this chapter's
-          evaluation are the applied-engineering thread running underneath the rest of this
-          tutorial: knowing what a request costs, cutting that cost without silently breaking
-          correctness, and measuring correctness well enough to know the difference. Chapter 8
-          picks the story back up with the real-world deployments, at the millions-of-users scale,
-          where getting exactly this right (or wrong) has real, measured consequences.
-        </p>
-
-        <Sources
-          items={[
-            {
-              label: "Lin, \"ROUGE: A Package for Automatic Evaluation of Summaries\" (2004)",
-              href: "https://aclanthology.org/W04-1013/",
-            },
-            {
-              label: "Cosine similarity, Wikipedia",
-              href: "https://en.wikipedia.org/wiki/Cosine_similarity",
-            },
-          ]}
-        />
-      </TextbookPage>
     </div>
   );
 }

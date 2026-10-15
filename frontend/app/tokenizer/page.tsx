@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { tokenizeText, type TokenizeResponse } from "@/lib/api";
 import { TextbookPage } from "@/components/TextbookPage";
+import { TokenizerIllustration } from "@/components/ChapterIllustrations";
 import { Analogy } from "@/components/Analogy";
 import { Sources } from "@/components/Sources";
 
@@ -34,7 +35,88 @@ export default function TokenizerPage() {
 
   return (
     <div className="space-y-10">
-      <div className="space-y-3">
+      <TextbookPage
+        eyebrow="Chapter 1"
+        title="Tokenization and the Cost of a Request"
+        pageNumber="Page 1"
+        prevPage={{ href: "/introduction", label: "Introduction" }}
+        nextPage={{ href: "/chat", label: "Chapter 2: Large Language Models" }}
+      >
+        <TokenizerIllustration />
+        <a
+          href="#try-it"
+          className="mx-auto block w-fit text-sm text-paper-ink/60 underline decoration-paper-ink/25 decoration-dotted underline-offset-4 transition hover:text-brand-700 hover:decoration-brand-500"
+        >
+          ↓ Try it yourself
+        </a>
+        <p>
+          Before a model can predict anything, whatever you type has to be converted into a form it
+          can actually read. This tutorial starts here, one level below the conversation itself: how
+          text becomes the individual pieces, <strong>tokens</strong>, a model processes one at a
+          time, and, since every hosted model bills per token rather than per character or word, what
+          a request built out of them actually costs. Chapter 2 picks up right where this leaves off:
+          an actual conversation with a model, generated one of these tokens at a time.
+        </p>
+
+        <h2 className="font-display text-lg font-bold text-paper-ink">
+          <span className="text-brand-600">1.1</span> Byte-Pair Encoding
+        </h2>
+        <p>
+          Every modern LLM tokenizer, including the ones behind GPT and Claude, is a variant of{" "}
+          <strong>byte-pair encoding (BPE)</strong>. The algorithm starts from individual characters
+          and repeatedly merges whichever adjacent pair of symbols occurs most often across a
+          training corpus into a new symbol, generation after generation. Common words end up
+          collapsing into a single token; words the tokenizer never saw during training (a typo,
+          a made-up word, a rare technical term) fall back to smaller, still-meaningful pieces
+          instead of one unhelpful "unknown word" marker.
+        </p>
+        <p>
+          No provider publishes the exact vocabulary their production tokenizer learned this way,
+          so there's no way to train a small local copy and expect its token boundaries to line up
+          with a real model's. The demo below sidesteps that entirely: instead of approximating,
+          it asks Claude directly for the exact count of whichever text you enter, the same count
+          that model would actually bill for.
+        </p>
+
+        <Analogy>
+          Approximating tokenization from scratch is like guessing how many puzzle pieces a box
+          contains by cutting your own cardboard into similar-sized shapes: a reasonable estimate,
+          but never the real count. Asking the actual manufacturer for the count on the box is the
+          only way to know for certain, which is exactly what this chapter's demo does.
+        </Analogy>
+
+        <h2 className="font-display text-lg font-bold text-paper-ink">
+          <span className="text-brand-600">1.2</span> Turning Tokens into Dollars
+        </h2>
+        <p>
+          Once text is tokenized, cost is just arithmetic: providers publish a price per million
+          tokens, separately for input (what you send) and output (what the model generates), and
+          output is typically priced several times higher than input. At real, published rates, a
+          single short request costs a fraction of a cent, but that number stops being trivial the
+          moment a feature is handling thousands of requests a day, which is exactly the "cost
+          optimization" concern Chapters 6 and 7 pick up next: how to spend fewer tokens without
+          spending less accuracy.
+        </p>
+
+        <Sources
+          items={[
+            {
+              label: "Sennrich, Haddow & Birch, \"Neural Machine Translation of Rare Words with Subword Units\" (2015): the paper that adapted BPE to language tokenization",
+              href: "https://arxiv.org/abs/1508.07909",
+            },
+            {
+              label: "Anthropic: token counting API reference (the exact endpoint this chapter's demo calls)",
+              href: "https://platform.claude.com/docs/en/api/messages-count-tokens",
+            },
+            {
+              label: "Anthropic: official Claude API pricing (current rates cited above)",
+              href: "https://platform.claude.com/docs/en/about-claude/pricing",
+            },
+          ]}
+        />
+      </TextbookPage>
+
+      <div id="try-it" className="scroll-mt-20 space-y-3">
         <h2 className="font-display text-xs font-bold uppercase tracking-[0.2em] text-paper-ink/50">
           Try it yourself
         </h2>
@@ -121,80 +203,6 @@ export default function TokenizerPage() {
           </div>
         )}
       </div>
-
-      <TextbookPage
-        eyebrow="Chapter 1"
-        title="Tokenization and the Cost of a Request"
-        pageNumber="Page 1"
-        prevPage={{ href: "/introduction", label: "Introduction" }}
-        nextPage={{ href: "/chat", label: "Chapter 2: Large Language Models" }}
-      >
-        <p>
-          Before a model can predict anything, whatever you type has to be converted into a form it
-          can actually read. This tutorial starts here, one level below the conversation itself: how
-          text becomes the individual pieces, <strong>tokens</strong>, a model processes one at a
-          time, and, since every hosted model bills per token rather than per character or word, what
-          a request built out of them actually costs. Chapter 2 picks up right where this leaves off:
-          an actual conversation with a model, generated one of these tokens at a time.
-        </p>
-
-        <h2 className="font-display text-lg font-bold text-paper-ink">
-          <span className="text-brand-600">1.1</span> Byte-Pair Encoding
-        </h2>
-        <p>
-          Every modern LLM tokenizer, including the ones behind GPT and Claude, is a variant of{" "}
-          <strong>byte-pair encoding (BPE)</strong>. The algorithm starts from individual characters
-          and repeatedly merges whichever adjacent pair of symbols occurs most often across a
-          training corpus into a new symbol, generation after generation. Common words end up
-          collapsing into a single token; words the tokenizer never saw during training (a typo,
-          a made-up word, a rare technical term) fall back to smaller, still-meaningful pieces
-          instead of one unhelpful "unknown word" marker.
-        </p>
-        <p>
-          No provider publishes the exact vocabulary their production tokenizer learned this way,
-          so there's no way to train a small local copy and expect its token boundaries to line up
-          with a real model's. The demo above sidesteps that entirely: instead of approximating,
-          it asks Claude directly for the exact count of whichever text you enter, the same count
-          that model would actually bill for.
-        </p>
-
-        <Analogy>
-          Approximating tokenization from scratch is like guessing how many puzzle pieces a box
-          contains by cutting your own cardboard into similar-sized shapes: a reasonable estimate,
-          but never the real count. Asking the actual manufacturer for the count on the box is the
-          only way to know for certain, which is exactly what this chapter's demo does.
-        </Analogy>
-
-        <h2 className="font-display text-lg font-bold text-paper-ink">
-          <span className="text-brand-600">1.2</span> Turning Tokens into Dollars
-        </h2>
-        <p>
-          Once text is tokenized, cost is just arithmetic: providers publish a price per million
-          tokens, separately for input (what you send) and output (what the model generates), and
-          output is typically priced several times higher than input. At real, published rates, a
-          single short request costs a fraction of a cent, but that number stops being trivial the
-          moment a feature is handling thousands of requests a day, which is exactly the "cost
-          optimization" concern Chapters 6 and 7 pick up next: how to spend fewer tokens without
-          spending less accuracy.
-        </p>
-
-        <Sources
-          items={[
-            {
-              label: "Sennrich, Haddow & Birch, \"Neural Machine Translation of Rare Words with Subword Units\" (2015): the paper that adapted BPE to language tokenization",
-              href: "https://arxiv.org/abs/1508.07909",
-            },
-            {
-              label: "Anthropic: token counting API reference (the exact endpoint this chapter's demo calls)",
-              href: "https://platform.claude.com/docs/en/api/messages-count-tokens",
-            },
-            {
-              label: "Anthropic: official Claude API pricing (current rates cited above)",
-              href: "https://platform.claude.com/docs/en/about-claude/pricing",
-            },
-          ]}
-        />
-      </TextbookPage>
     </div>
   );
 }

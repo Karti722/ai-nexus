@@ -1,4 +1,5 @@
 import { TextbookPage } from "@/components/TextbookPage";
+import { ArchitectureIllustration } from "@/components/ChapterIllustrations";
 import { Analogy } from "@/components/Analogy";
 import { ArchitectureDiagram } from "@/components/ArchitectureDiagram";
 import { Sources } from "@/components/Sources";
@@ -13,6 +14,7 @@ export default function ArchitecturePage() {
         prevPage={{ href: "/enterprise", label: "Chapter 8: These Concepts in the Real World" }}
         nextPage={{ href: "/building", label: "Chapter 10: How This Tutorial Was Built" }}
       >
+        <ArchitectureIllustration />
         <p>
           Every chapter so far has explained a concept and then let you try it. This chapter turns
           the lens on the tutorial itself: what's actually running behind these pages, and why it's

@@ -314,7 +314,11 @@ ai-nexus/
     │   ├── CaseStudy.tsx
     │   ├── Sources.tsx
     │   ├── ArchitectureDiagram.tsx
-    │   └── AppExplainer.tsx        # Chapter 11 / `/explain`'s shared UI: question box, Mermaid render, "Listen" button
+    │   ├── AppExplainer.tsx        # Chapter 11 / `/explain`'s shared UI: question box, Mermaid render, "Listen" button
+    │   ├── HomeIllustration.tsx    # decorative open-book SVG on the homepage, no image request
+    │   ├── ChapterIllustrations.tsx # one small decorative SVG per chapter, same visual family
+    │   ├── Reveal.tsx              # scroll-reveal fade/slide-in, used by every page via TextbookPage
+    │   └── ReadingProgressBar.tsx  # thin scroll-position bar, mounted once in app/layout.tsx
     └── app/
         ├── layout.tsx              # shared shell (nav + page container)
         ├── globals.css             # Tailwind + shared utility classes
@@ -646,7 +650,21 @@ exceptions: both now call a real hosted model directly instead of approximating 
   (Chapter 9's system diagram) and `AppExplainer` (Chapter 11 and `/explain`'s shared
   implementation: the question input, Mermaid diagram render, written explanation and an optional
   browser-native "Listen" text-to-speech button — one real component, imported by both pages, see
-  `info/personalized-explainer-spec.md` section 2 for why).
+  `info/personalized-explainer-spec.md` section 2 for why). Two more small components apply to
+  every page site-wide from a single integration point each, rather than being opted into per
+  page: `Reveal` (a `"use client"` component using `IntersectionObserver` to fade/slide a block up
+  the first time it scrolls into view, then leaving it alone; `TextbookPage` wraps its own
+  `children` in `Reveal`'s sibling `RevealGroup`, which wraps every direct child in its own
+  `Reveal`, so every chapter gets this automatically with no per-page changes; respects
+  `prefers-reduced-motion`, and a `js-reveal` class plus a `<noscript>` rule in `app/layout.tsx`
+  keep content visible even with JavaScript disabled) and `ReadingProgressBar` (a thin bar fixed to
+  the very top of the viewport, mounted once in `app/layout.tsx`, filling left-to-right with
+  scroll position on every page). One real bug worth knowing if touching either: `IntersectionObserver`'s
+  `threshold` is a fraction of the *target's own total height*, not the viewport, so an early
+  version of `Reveal` using `threshold: 0.08` left very tall pages permanently invisible (the
+  visible fraction of a huge element never reached 8% of its own height); fixed by using
+  `threshold: 0`, immune to target size, plus a 2.5s fallback timer forcing visibility regardless,
+  so this failure mode (content never appearing at all) can't recur even in some other edge case.
 - **`app/`**: one route per chapter (see the directory tree above for the full chapter-to-route
   mapping), plus `/` (the table of contents, with an author byline linking to
   https://kartikeyakumaria.com/ under the title), `/introduction` (front matter: why this

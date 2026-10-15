@@ -13,6 +13,11 @@ import {
   GearsIllustration,
   NotebookIllustration,
 } from "@/components/diagrams/Illustrations";
+import { CODEBASE_MD } from "@/content/codebaseMd";
+import { DEPLOYMENT_MD } from "@/content/deploymentMd";
+import { CI_CD_MD } from "@/content/ciCdMd";
+import { EXPLAINER_SPEC_MD } from "@/content/explainerSpecMd";
+import { KNOWLEDGE_BASE_MD } from "@/content/knowledgeBaseMd";
 
 export const metadata = {
   robots: { index: false, follow: false },
@@ -30,7 +35,20 @@ const SECTIONS = [
   { id: "built", label: "How it was actually built" },
   { id: "faq", label: "Likely follow-up questions" },
   { id: "beginner", label: "The codebase, explained from zero" },
+  { id: "docs-codebase", label: "Full doc: codebase.md" },
+  { id: "docs-deployment", label: "Full doc: deployment.md" },
+  { id: "docs-cicd", label: "Full doc: CI-CD.md" },
+  { id: "docs-explainer-spec", label: "Full doc: personalized-explainer-spec.md" },
+  { id: "docs-knowledge-base", label: "Full doc: knowledge-base.md" },
 ];
+
+function RawDoc({ content }: { content: string }) {
+  return (
+    <pre className="overflow-x-auto whitespace-pre-wrap rounded-sm border border-paper-ink/10 bg-paper-ink/[0.04] p-4 font-mono text-[11px] leading-relaxed text-paper-ink/80">
+      {content}
+    </pre>
+  );
+}
 
 export default function InterviewPrepPage() {
   return (
@@ -687,6 +705,118 @@ export default function InterviewPrepPage() {
             ]}
             caption="Figure 23. mcp-server runs as its own program, reached over stdin/stdout, not HTTP."
           />
+        <p className="italic text-paper-ink/60">
+          A lot of people new to this space hear "LangChain" and "LangGraph" and assume they're
+          the same thing, or interchangeable names for one library. They're not. The next two
+          explanations identify each one completely independently, on its own, with zero reference
+          to the other, specifically so neither gets blurred into the other in your head. A third
+          explanation afterward then covers exactly how the two actually connect inside this app's
+          real code.
+        </p>
+        <Explanation
+          technical={
+            <p>
+              <strong>What LangChain actually is, identified on its own:</strong> LangChain is an
+              open-source framework (with both a Python and a JavaScript/TypeScript version) that
+              provides ready-made, standardized building blocks for working with LLMs, so a
+              developer doesn't have to hand-write the same plumbing every single project. Three
+              of those building blocks are what this app actually uses: standardized{" "}
+              <strong>message types</strong> (`HumanMessage`, `SystemMessage`, from the{" "}
+              `@langchain/core` package, version 0.3.40 here) that represent a conversation turn in
+              a provider-neutral shape; a <strong>chat model wrapper class</strong> (`ChatAnthropic`,
+              from the `@langchain/anthropic` package, version 0.3.14 here) that wraps Anthropic's
+              real API behind a common interface every LangChain-compatible model shares, so code
+              written against it could swap to `ChatOpenAI` or another provider's equivalent with
+              minimal changes; and the general convention of calling `.invoke()` on a model with an
+              array of those message objects to get a response back. In this app, LangChain's
+              pieces are used in exactly one file, `backend/src/explainer/buildAndRun.ts`, and
+              nowhere else: every other Claude call in this entire app (chat, RAG, the agent) goes
+              through the raw `@anthropic-ai/sdk` directly, via `backend/src/llm/anthropicClient.ts`,
+              with no LangChain involved at all. LangChain's `ChatAnthropic` wrapper is genuinely a
+              second, independent way this app calls Claude, used in only this one feature.
+            </p>
+          }
+          beginner={
+            <p>
+              <strong>What LangChain actually is, identified completely on its own:</strong>{" "}
+              forget LangGraph exists for a moment, this explanation is only about LangChain.
+              LangChain is a toolbox: a collection of ready-made pieces for building things with AI
+              models, so a programmer doesn't have to write the exact same basic plumbing from
+              scratch every time they start a new project that talks to an AI. Two specific pieces
+              from that toolbox are what this app borrows: a standard way to format "here's what the
+              system should know" and "here's what the user said" as distinct, labeled pieces of a
+              conversation, and a wrapper class that makes calling Claude look the same as calling
+              a different company's AI model would, so the surrounding code barely has to change if
+              the model is ever swapped. This app uses LangChain in exactly one place: the feature
+              that draws diagrams and writes explanations about how the app itself works (Chapter
+              11 / `/explain`). Everywhere else in the app, the chat page, the RAG page, the agent,
+              Claude is called a completely different way, directly, without LangChain's toolbox at
+              all. So LangChain, in this app, is specifically and only the thing powering that one
+              diagram-and-explanation feature's actual calls to Claude.
+            </p>
+          }
+        />
+        <CompareFigure
+          leftTitle="LangChain pieces used here"
+          leftItems={["HumanMessage / SystemMessage", "ChatAnthropic model wrapper", "@langchain/core, @langchain/anthropic"]}
+          rightTitle="Used in exactly"
+          rightItems={["backend/src/explainer/buildAndRun.ts", "Nowhere else in this app"]}
+          caption="Figure 24a. LangChain, identified on its own, independent of LangGraph."
+        />
+        <Explanation
+          technical={
+            <p>
+              <strong>What LangGraph actually is, identified on its own:</strong> LangGraph
+              (`@langchain/langgraph`, version 0.2.44 here) is a genuinely separate package from
+              LangChain's core and model-wrapper packages, built by the same company but solving a
+              different problem: orchestrating a multi-step process as an explicit graph, rather
+              than one single prompt-and-response call. Concretely, LangGraph gives you a{" "}
+              `StateGraph` class: you define a shape of shared state (in this app,{" "}
+              `ExplainerState`, built with LangGraph's own `Annotation.Root` helper), you define
+              named nodes (plain functions, each receiving the current state and returning the
+              fields it wants to change), and you wire nodes together with edges (`addEdge`) that
+              say which node runs after which. LangGraph then handles actually walking that graph
+              and merging each node's returned updates into the shared state correctly (via each
+              field's own `reducer` function), so the surrounding code never manually threads data
+              from one step to the next by hand. Critically: LangGraph itself has no idea what an
+              LLM even is, it has no concept of "Claude" or "a prompt" built into it at all, it's a
+              generic state-machine/workflow engine. It only becomes an AI workflow because the
+              node functions you write happen to call an AI model inside them, which, in this app,
+              is where LangChain's pieces (described independently above) come back in. In this
+              app, LangGraph is used in exactly one file, the same one, `backend/src/explainer/
+              buildAndRun.ts`: nowhere else does this app build an explicit graph of steps this way,
+              the hand-built agent (Chapter 4, `agentLoop.ts`) uses a plain `for` loop instead, with
+              no LangGraph involved at all.
+            </p>
+          }
+          beginner={
+            <p>
+              <strong>What LangGraph actually is, identified completely on its own:</strong> forget
+              LangChain exists for a moment, this explanation is only about LangGraph. Imagine a
+              recipe card with numbered steps and one shared mixing bowl that gets passed from step
+              to step: each step reads whatever's already in the bowl, does its own specific job,
+              and adds its own result into the bowl before handing it to the next step. LangGraph is
+              a tool for building exactly that: a fixed, multi-step process with a shared pot of
+              information (called "state") that flows through every step in order. By itself,
+              LangGraph has absolutely no idea what "AI" or "Claude" even means, it's just a generic
+              tool for "run these steps in this order, and carry this shared information between
+              them correctly." It only becomes part of an AI feature because, in this app, some of
+              those individual steps happen to ask Claude something while they run. In this app,
+              LangGraph is used in exactly one feature, the one that draws diagrams and writes
+              explanations about the app itself (Chapter 11 / `/explain`). The hand-built AI agent
+              (Chapter 4) is a completely different, simpler kind of "multiple steps" (a loop that
+              repeats until it's done) and doesn't use LangGraph at all.
+            </p>
+          }
+        />
+        <FlowFigure
+          steps={[
+            { label: "StateGraph", sub: "LangGraph's own class" },
+            { label: "shared state", sub: "Annotation.Root" },
+            { label: "nodes + edges", sub: "no AI concept built in" },
+          ]}
+          caption="Figure 24b. LangGraph, identified on its own, independent of LangChain."
+        />
         <Explanation
           technical={
             <p>
@@ -1219,6 +1349,62 @@ export default function InterviewPrepPage() {
               so each step only has to worry about its own one job.
             </p>
           }
+        />
+        <Explanation
+          technical={
+            <p>
+              <strong>How LangChain and LangGraph actually connect, in this app's real code:</strong>{" "}
+              they meet inside exactly one function, `explainApp()` in `backend/src/explainer/
+              buildAndRun.ts`, and the division of labor between them is precise: LangGraph owns the{" "}
+              <em>structure</em>, LangChain owns every actual <em>call to Claude</em>. Concretely:
+              one single `ChatAnthropic` instance (LangChain's model wrapper) is created once, at
+              the very top of `explainApp()`, before the graph is even built. LangGraph's{" "}
+              `StateGraph` is then built around that model: the `diagram` node and the `explain`
+              node each construct a `SystemMessage` and a `HumanMessage` (LangChain's message
+              classes) and pass them to that same shared `model.invoke([system, human])` call.
+              LangGraph itself never imports `@langchain/anthropic` or constructs a single message,
+              it has no idea Claude is even involved; it only ever sees whatever plain JavaScript
+              object each node function returns (`{"{ context }"}`, `{"{ mermaidDefinition, diagramCaption }"}`,
+              `{"{ explanation }"}`) and merges that into the shared state. The `retrieve` node doesn't use
+              LangChain at all, it calls this app's own `embedTexts()`/`searchSimilar()` functions
+              directly, nothing to do with either library. So, precisely: LangGraph is the skeleton
+              deciding what runs in what order and what's visible to what; LangChain is the specific
+              tool used inside two of the three limbs to actually reach Claude. Swap out LangGraph
+              for a hand-written sequence of three `await` calls and LangChain's pieces would work
+              completely unchanged; swap out LangChain's `ChatAnthropic` for a raw `@anthropic-ai/sdk`
+              call instead (as every other Claude-calling feature in this app already does) and
+              LangGraph's graph structure would work completely unchanged too. They're genuinely
+              independent, composable pieces that simply happen to both be used, in this one file,
+              at the same time.
+            </p>
+          }
+          beginner={
+            <p>
+              <strong>How LangChain and LangGraph actually connect, in plain terms:</strong> picture
+              the three-step recipe from the LangGraph explanation above, the one with the shared
+              clipboard passed from step to step. LangGraph is the thing managing that clipboard and
+              making sure it reaches each step in the right order. But what does a step actually{" "}
+              <em>do</em> once it has the clipboard? Two of the three steps ("draw a diagram" and
+              "write an explanation") need to actually ask Claude something, and that's precisely
+              where LangChain comes in: those two steps use LangChain's standard message format to
+              write out "here are the instructions" and "here's the real question," and hand that to
+              LangChain's Claude-wrapper to get a real answer back. The third step ("look up real
+              passages") doesn't need to ask Claude anything at all, it just searches the database
+              directly, so it doesn't use LangChain either. The cleanest way to say it: LangGraph is
+              the recipe card and the clipboard, deciding what happens in what order and carrying
+              information between steps; LangChain is one specific tool a couple of those steps
+              happen to reach for, to actually talk to Claude. They're two separate tools that are
+              simply both sitting on the same workbench, used together here, but neither one needs
+              the other to exist or to work.
+            </p>
+          }
+        />
+        <CompareFigure
+          leftTitle="LangGraph's job"
+          leftItems={["Decides the order of steps", "Carries shared state between them", "Has no idea Claude exists"]}
+          rightTitle="LangChain's job"
+          rightItems={["Used inside 2 of the 3 steps", "Formats messages, calls Claude", "Has no idea a graph exists"]}
+          caption="Figure 24c. Two independent tools, composed together in one file, neither depending on the other."
         />
         </ExplainModeProvider>
 
@@ -1848,6 +2034,53 @@ export default function InterviewPrepPage() {
           ]}
           caption="Figure 50. Deploying, start to finish, with nobody running a command by hand."
         />
+
+        <h2 id="docs-codebase" className="font-display text-lg font-bold text-paper-ink scroll-mt-20">
+          Full doc: info/codebase.md
+        </h2>
+        <p className="italic text-paper-ink/60">
+          The complete, real text of this repo's own architecture guide, exactly as it reads in the
+          actual repository, not a paraphrase. A static snapshot taken when this page was last
+          updated: if `info/codebase.md` itself changes afterward, this copy needs regenerating to
+          match, it is not fetched live.
+        </p>
+        <RawDoc content={CODEBASE_MD} />
+
+        <h2 id="docs-deployment" className="font-display text-lg font-bold text-paper-ink scroll-mt-20">
+          Full doc: info/deployment.md
+        </h2>
+        <p className="italic text-paper-ink/60">
+          The complete, real step-by-step guide this app's actual Google Cloud deployment was built
+          from, start to finish.
+        </p>
+        <RawDoc content={DEPLOYMENT_MD} />
+
+        <h2 id="docs-cicd" className="font-display text-lg font-bold text-paper-ink scroll-mt-20">
+          Full doc: info/CI-CD.md
+        </h2>
+        <p className="italic text-paper-ink/60">
+          The complete, real guide to how this app's GitHub Actions pipeline and Workload Identity
+          Federation were actually set up.
+        </p>
+        <RawDoc content={CI_CD_MD} />
+
+        <h2 id="docs-explainer-spec" className="font-display text-lg font-bold text-paper-ink scroll-mt-20">
+          Full doc: info/personalized-explainer-spec.md
+        </h2>
+        <p className="italic text-paper-ink/60">
+          The complete, real design record for Chapter 11 / `/explain`, including every alternative
+          considered and rejected along the way.
+        </p>
+        <RawDoc content={EXPLAINER_SPEC_MD} />
+
+        <h2 id="docs-knowledge-base" className="font-display text-lg font-bold text-paper-ink scroll-mt-20">
+          Full doc: info/knowledge-base.md
+        </h2>
+        <p className="italic text-paper-ink/60">
+          The complete, real operational guide to adding, editing or removing a RAG knowledge-base
+          article with `npm run kb`.
+        </p>
+        <RawDoc content={KNOWLEDGE_BASE_MD} />
       </TextbookPage>
     </div>
   );

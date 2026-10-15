@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { summarizeText, type SummarizeMode, type SummarizeResponse } from "@/lib/api";
 import { TextbookPage } from "@/components/TextbookPage";
+import { SummarizeIllustration } from "@/components/ChapterIllustrations";
 import { Analogy } from "@/components/Analogy";
 import { CaseStudy } from "@/components/CaseStudy";
 import { Sources } from "@/components/Sources";
@@ -43,7 +44,155 @@ export default function SummarizePage() {
 
   return (
     <div className="space-y-10">
-      <div className="space-y-3">
+      <TextbookPage
+        eyebrow="Chapter 5"
+        title="Automatic Text Summarization"
+        pageNumber="Page 5"
+        prevPage={{ href: "/agent", label: "Chapter 4: AI Agents and Tool Use" }}
+        nextPage={{ href: "/cache", label: "Chapter 6: Semantic Caching" }}
+      >
+        <SummarizeIllustration />
+        <a
+          href="#try-it"
+          className="mx-auto block w-fit text-sm text-paper-ink/60 underline decoration-paper-ink/25 decoration-dotted underline-offset-4 transition hover:text-brand-700 hover:decoration-brand-500"
+        >
+          ↓ Try it yourself
+        </a>
+        <p>
+          Long documents are slow to read, and not every sentence in one carries equal weight:
+          most of a document's meaning tends to be concentrated in a handful of central sentences,
+          surrounded by supporting detail, examples and asides. Skimming a full document just to
+          find its main point doesn't scale once there are hundreds of documents to get through,
+          which is the same problem retrieval in Chapter 3 solves for finding documents in the
+          first place. This chapter is about condensing a single one, once you're already looking
+          at it.
+        </p>
+
+        <h2 className="font-display text-lg font-bold text-paper-ink">
+          <span className="text-brand-600">5.1</span> Two Families of Summarization
+        </h2>
+        <p>
+          Summarization comes in two families, and the toggle below switches between working
+          examples of both. <strong>Extractive</strong> summarization selects a handful of the
+          document's own sentences, verbatim, and presents them in their original order as the
+          summary: nothing is paraphrased or invented, which makes it far easier to trust, since
+          there's no way for it to introduce a claim the source document never made, but it can
+          only ever rearrange sentences that already exist. <strong>Abstractive</strong>{" "}
+          summarization asks a language model to write a new, shorter version of a text in its own
+          words, the same generation mechanism from Chapter 2, given a document instead of a
+          question: it can compress across sentences, merge related ideas and use its own phrasing,
+          at the cost of a real model call and the small chance it paraphrases something in a way
+          the source didn't quite mean.
+        </p>
+
+        <h2 className="font-display text-lg font-bold text-paper-ink">
+          <span className="text-brand-600">5.2</span> How Each Mode Works
+        </h2>
+        <p>
+          <strong>Abstractive</strong> mode simply hands your text to a language model with an
+          instruction to paraphrase it in roughly your target length, without copying sentences
+          verbatim or adding claims the source doesn't make, the same generation step Chapter 2
+          uses for chat. If a live model connection isn't available, the tool clearly labels its
+          reply as a placeholder rather than a real paraphrase, since a genuine paraphrase requires
+          an actual model call to produce. <strong>Extractive</strong> mode instead uses{" "}
+          <strong>TextRank</strong>, a graph-based ranking algorithm: each sentence is embedded
+          (the same technique from Chapter 3) and compared against every other sentence with
+          cosine similarity, turning the document into a graph where a sentence's score depends on
+          how well-connected it is to the rest of the document's ideas, the same random-walk idea
+          behind PageRank, applied to sentences instead of web pages. Unlike abstractive mode, this
+          runs for free, with no model call involved at all.
+        </p>
+
+        <Analogy>
+          Extractive summarization is highlighting the most important sentences in a textbook with
+          a marker: quick, free, and every highlighted word is guaranteed to be exactly what the
+          author wrote. Abstractive summarization is asking a well-read friend to explain the
+          chapter back to you in their own words: often clearer and more compact, but now it's
+          their understanding, and their time, standing between you and the source, not the source
+          itself.
+        </Analogy>
+
+        <h2 className="font-display text-lg font-bold text-paper-ink">
+          <span className="text-brand-600">5.3</span> Two Smaller, Older Techniques
+        </h2>
+        <p>
+          Extractive mode also runs two much older and simpler techniques over the same text.{" "}
+          <strong>Keyword extraction</strong> counts how often each word appears after common
+          function words like "the" and "of" are filtered out; the surviving high-frequency words
+          are a decent guess at what a passage is actually about. It's the "term frequency" half of
+          TF-IDF, a term-weighting idea from information retrieval that predates embeddings by
+          decades, included here to show that not every useful text technique needs a model at all.
+        </p>
+        <p>
+          <strong>Readability scoring</strong> answers a different question: not what the text is
+          about, but how hard it is to read. The Flesch-Kincaid formulas turn three simple counts
+          (words, sentences and syllables per word) into an estimated U.S. school grade level.
+          Run it on both the original text and either mode's summary and compare: extractive
+          summaries often score a lower (easier) grade level than the original, purely because
+          TextRank tends to favor shorter, self-contained sentences, even though not a single word
+          was rewritten to simplify it, while an abstractive summary's grade level depends entirely
+          on how the model chose to phrase its paraphrase.
+        </p>
+
+        <h2 className="font-display text-lg font-bold text-paper-ink">
+          <span className="text-brand-600">5.4</span> Why Not Just Always Use the LLM?
+        </h2>
+        <p>
+          Given a capable model is already one prompt away, it's worth asking why extractive
+          methods are still used in production systems at all, instead of every summarizer just
+          calling an LLM. Two practical reasons: cost and verifiability. An abstractive call bills
+          real tokens on every request, the same way Chapter 1's tokenizer counts and Chapter 2's
+          chat does, while TextRank's embedding-similarity pass, like Chapter 3's retrieval or
+          Chapter 6's cache, runs for free. And because an extractive summary only ever rearranges
+          the source's own sentences, it can never introduce a claim the document didn't make,
+          exactly the hallucination risk Chapter 2 covers, a much stronger trust guarantee than any
+          abstractive rewrite can offer. Reach for extractive when the source needs to be quoted
+          exactly or cost matters at scale; reach for abstractive when a compact, readable
+          paraphrase matters more than either.
+        </p>
+
+        <CaseStudy company="Law Firm Document Review">
+          <p>
+            A law firm reviewing thousands of pages of discovery documents needs both modes for
+            different reasons. Paralegals doing an initial pass use <strong>extractive</strong>{" "}
+            summaries to triage which documents are worth a closer look: every sentence shown is
+            quoted exactly from the source, so nothing can be misattributed to a document during
+            an initial skim, and running it over thousands of pages costs nothing per page. Once a
+            document is flagged as relevant, an attorney asks for an <strong>abstractive</strong>{" "}
+            summary instead, trading a small per-call cost for a compact, readable overview that
+            merges related clauses together, something no amount of sentence-selecting can do,
+            before reading the full document firsthand.
+          </p>
+        </CaseStudy>
+
+        <Sources
+          items={[
+            {
+              label: "Mihalcea & Tarau, \"TextRank: Bringing Order into Text\" (2004)",
+              href: "https://aclanthology.org/W04-3252/",
+            },
+            {
+              label: "Brin & Page, \"The Anatomy of a Large-Scale Hypertextual Web Search Engine\" (1998): the original PageRank paper TextRank adapts",
+              href: "http://infolab.stanford.edu/pub/papers/google.pdf",
+            },
+            {
+              label: "Spärck Jones, \"A Statistical Interpretation of Term Specificity and Its Application in Retrieval\" (1972)",
+              href: "https://www.emeraldinsight.com/doi/10.1108/eb026526",
+            },
+            {
+              label: "Kincaid et al., \"Derivation of New Readability Formulas ... for Navy Enlisted Personnel\" (1975): defines the Flesch-Kincaid Grade Level formula",
+              href: "https://apps.dtic.mil/sti/tr/pdf/ADA006655.pdf",
+            },
+            {
+              label:
+                "See et al., \"Get To The Point: Summarization with Pointer-Generator Networks\" (2017): a widely cited neural abstractive summarization approach",
+              href: "https://arxiv.org/abs/1704.04368",
+            },
+          ]}
+        />
+      </TextbookPage>
+
+      <div id="try-it" className="scroll-mt-20 space-y-3">
         <h2 className="font-display text-xs font-bold uppercase tracking-[0.2em] text-paper-ink/50">
           Try it yourself
         </h2>
@@ -232,147 +381,6 @@ export default function SummarizePage() {
           </div>
         )}
       </div>
-
-      <TextbookPage
-        eyebrow="Chapter 5"
-        title="Automatic Text Summarization"
-        pageNumber="Page 5"
-        prevPage={{ href: "/agent", label: "Chapter 4: AI Agents and Tool Use" }}
-        nextPage={{ href: "/cache", label: "Chapter 6: Semantic Caching" }}
-      >
-        <p>
-          Long documents are slow to read, and not every sentence in one carries equal weight:
-          most of a document's meaning tends to be concentrated in a handful of central sentences,
-          surrounded by supporting detail, examples and asides. Skimming a full document just to
-          find its main point doesn't scale once there are hundreds of documents to get through,
-          which is the same problem retrieval in Chapter 3 solves for finding documents in the
-          first place. This chapter is about condensing a single one, once you're already looking
-          at it.
-        </p>
-
-        <h2 className="font-display text-lg font-bold text-paper-ink">
-          <span className="text-brand-600">5.1</span> Two Families of Summarization
-        </h2>
-        <p>
-          Summarization comes in two families, and the toggle above switches between working
-          examples of both. <strong>Extractive</strong> summarization selects a handful of the
-          document's own sentences, verbatim, and presents them in their original order as the
-          summary: nothing is paraphrased or invented, which makes it far easier to trust, since
-          there's no way for it to introduce a claim the source document never made, but it can
-          only ever rearrange sentences that already exist. <strong>Abstractive</strong>{" "}
-          summarization asks a language model to write a new, shorter version of a text in its own
-          words, the same generation mechanism from Chapter 2, given a document instead of a
-          question: it can compress across sentences, merge related ideas and use its own phrasing,
-          at the cost of a real model call and the small chance it paraphrases something in a way
-          the source didn't quite mean.
-        </p>
-
-        <h2 className="font-display text-lg font-bold text-paper-ink">
-          <span className="text-brand-600">5.2</span> How Each Mode Works
-        </h2>
-        <p>
-          <strong>Abstractive</strong> mode simply hands your text to a language model with an
-          instruction to paraphrase it in roughly your target length, without copying sentences
-          verbatim or adding claims the source doesn't make, the same generation step Chapter 2
-          uses for chat. If a live model connection isn't available, the tool clearly labels its
-          reply as a placeholder rather than a real paraphrase, since a genuine paraphrase requires
-          an actual model call to produce. <strong>Extractive</strong> mode instead uses{" "}
-          <strong>TextRank</strong>, a graph-based ranking algorithm: each sentence is embedded
-          (the same technique from Chapter 3) and compared against every other sentence with
-          cosine similarity, turning the document into a graph where a sentence's score depends on
-          how well-connected it is to the rest of the document's ideas, the same random-walk idea
-          behind PageRank, applied to sentences instead of web pages. Unlike abstractive mode, this
-          runs for free, with no model call involved at all.
-        </p>
-
-        <Analogy>
-          Extractive summarization is highlighting the most important sentences in a textbook with
-          a marker: quick, free, and every highlighted word is guaranteed to be exactly what the
-          author wrote. Abstractive summarization is asking a well-read friend to explain the
-          chapter back to you in their own words: often clearer and more compact, but now it's
-          their understanding, and their time, standing between you and the source, not the source
-          itself.
-        </Analogy>
-
-        <h2 className="font-display text-lg font-bold text-paper-ink">
-          <span className="text-brand-600">5.3</span> Two Smaller, Older Techniques
-        </h2>
-        <p>
-          Extractive mode also runs two much older and simpler techniques over the same text.{" "}
-          <strong>Keyword extraction</strong> counts how often each word appears after common
-          function words like "the" and "of" are filtered out; the surviving high-frequency words
-          are a decent guess at what a passage is actually about. It's the "term frequency" half of
-          TF-IDF, a term-weighting idea from information retrieval that predates embeddings by
-          decades, included here to show that not every useful text technique needs a model at all.
-        </p>
-        <p>
-          <strong>Readability scoring</strong> answers a different question: not what the text is
-          about, but how hard it is to read. The Flesch-Kincaid formulas turn three simple counts
-          (words, sentences and syllables per word) into an estimated U.S. school grade level.
-          Run it on both the original text and either mode's summary and compare: extractive
-          summaries often score a lower (easier) grade level than the original, purely because
-          TextRank tends to favor shorter, self-contained sentences, even though not a single word
-          was rewritten to simplify it, while an abstractive summary's grade level depends entirely
-          on how the model chose to phrase its paraphrase.
-        </p>
-
-        <h2 className="font-display text-lg font-bold text-paper-ink">
-          <span className="text-brand-600">5.4</span> Why Not Just Always Use the LLM?
-        </h2>
-        <p>
-          Given a capable model is already one prompt away, it's worth asking why extractive
-          methods are still used in production systems at all, instead of every summarizer just
-          calling an LLM. Two practical reasons: cost and verifiability. An abstractive call bills
-          real tokens on every request, the same way Chapter 1's tokenizer counts and Chapter 2's
-          chat does, while TextRank's embedding-similarity pass, like Chapter 3's retrieval or
-          Chapter 6's cache, runs for free. And because an extractive summary only ever rearranges
-          the source's own sentences, it can never introduce a claim the document didn't make,
-          exactly the hallucination risk Chapter 2 covers, a much stronger trust guarantee than any
-          abstractive rewrite can offer. Reach for extractive when the source needs to be quoted
-          exactly or cost matters at scale; reach for abstractive when a compact, readable
-          paraphrase matters more than either.
-        </p>
-
-        <CaseStudy company="Law Firm Document Review">
-          <p>
-            A law firm reviewing thousands of pages of discovery documents needs both modes for
-            different reasons. Paralegals doing an initial pass use <strong>extractive</strong>{" "}
-            summaries to triage which documents are worth a closer look: every sentence shown is
-            quoted exactly from the source, so nothing can be misattributed to a document during
-            an initial skim, and running it over thousands of pages costs nothing per page. Once a
-            document is flagged as relevant, an attorney asks for an <strong>abstractive</strong>{" "}
-            summary instead, trading a small per-call cost for a compact, readable overview that
-            merges related clauses together, something no amount of sentence-selecting can do,
-            before reading the full document firsthand.
-          </p>
-        </CaseStudy>
-
-        <Sources
-          items={[
-            {
-              label: "Mihalcea & Tarau, \"TextRank: Bringing Order into Text\" (2004)",
-              href: "https://aclanthology.org/W04-3252/",
-            },
-            {
-              label: "Brin & Page, \"The Anatomy of a Large-Scale Hypertextual Web Search Engine\" (1998): the original PageRank paper TextRank adapts",
-              href: "http://infolab.stanford.edu/pub/papers/google.pdf",
-            },
-            {
-              label: "Spärck Jones, \"A Statistical Interpretation of Term Specificity and Its Application in Retrieval\" (1972)",
-              href: "https://www.emeraldinsight.com/doi/10.1108/eb026526",
-            },
-            {
-              label: "Kincaid et al., \"Derivation of New Readability Formulas ... for Navy Enlisted Personnel\" (1975): defines the Flesch-Kincaid Grade Level formula",
-              href: "https://apps.dtic.mil/sti/tr/pdf/ADA006655.pdf",
-            },
-            {
-              label:
-                "See et al., \"Get To The Point: Summarization with Pointer-Generator Networks\" (2017): a widely cited neural abstractive summarization approach",
-              href: "https://arxiv.org/abs/1704.04368",
-            },
-          ]}
-        />
-      </TextbookPage>
     </div>
   );
 }

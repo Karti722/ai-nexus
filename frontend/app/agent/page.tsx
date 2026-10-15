@@ -5,6 +5,7 @@ import { runAgent, type AgentTraceStep } from "@/lib/api";
 import { AgentTrace } from "@/components/AgentTrace";
 import { Analogy } from "@/components/Analogy";
 import { TextbookPage } from "@/components/TextbookPage";
+import { AgentIllustration } from "@/components/ChapterIllustrations";
 import { Sources } from "@/components/Sources";
 
 const SAMPLE_PROMPTS = [
@@ -39,7 +40,125 @@ export default function AgentPage() {
 
   return (
     <div className="space-y-10">
-      <div className="space-y-3">
+      <TextbookPage
+        eyebrow="Chapter 4"
+        title="AI Agents and Tool Use"
+        pageNumber="Page 4"
+        prevPage={{ href: "/rag", label: "Chapter 3: Retrieval-Augmented Generation" }}
+        nextPage={{ href: "/summarize", label: "Chapter 5: Automatic Text Summarization" }}
+      >
+        <AgentIllustration />
+        <a
+          href="#try-it"
+          className="mx-auto block w-fit text-sm text-paper-ink/60 underline decoration-paper-ink/25 decoration-dotted underline-offset-4 transition hover:text-brand-700 hover:decoration-brand-500"
+        >
+          ↓ Try it yourself
+        </a>
+        <p>
+          Even with retrieval, a language model still only produces text: it cannot perform a
+          precise calculation, take an action or reach out to another system to check something in
+          real time. It also can't decide partway through answering that it needs to do one of those
+          things; at best, it can only respond with whatever it's already been given.
+        </p>
+
+        <p>
+          An <strong>AI agent</strong> extends a language model with the ability to take actions, by
+          giving it a defined set of tools it's allowed to call (a calculator, a search function, a
+          request to another system) along with a description of what each tool does. Instead of
+          only producing a final answer, the model can produce a request to use one of these tools.
+          That request is carried out outside the model, and the result is fed back into the
+          conversation as something the model just observed. The model then decides, based on that
+          new information, whether it can answer now or needs to call another tool. Think, act,
+          observe and repeat until ready to answer: this cycle is often called the{" "}
+          <strong>ReAct</strong> pattern, short for "reason and act," and it's the mechanism behind
+          every AI system capable of doing more than talking.
+        </p>
+
+        <Analogy>
+          A plain chatbot is like asking someone a question and only getting an answer from whatever
+          they already remember. An agent is like sending someone to actually go find the answer:
+          they might do a calculation, check a source or make a call, and only report back once
+          they've gathered what's actually needed, adjusting their next step based on what they
+          learn along the way, rather than committing to one fixed plan up front.
+        </Analogy>
+
+        <p>
+          Tool use raises a practical problem, though: every application that wants to give a model
+          access to a tool would otherwise need its own custom, one-off integration for that specific
+          tool. The <strong>Model Context Protocol (MCP)</strong> is an open standard that solves
+          this by defining one common format for describing tools and exchanging tool calls and
+          results, independent of which AI model or application is using them. A program exposing
+          tools over MCP can be reached by any MCP-compatible agent, and an agent that speaks MCP can
+          use tools from any MCP-compatible source; neither side needs to know anything specific
+          about the other beyond the shared protocol.
+        </p>
+
+        <Analogy>
+          MCP plays a similar role for AI tools that a standard electrical outlet plays for
+          appliances. Without a shared standard, every appliance would need its own uniquely shaped
+          plug matched to a uniquely shaped outlet. Because manufacturers build to one shared
+          standard instead, any compliant appliance works in any compliant outlet. MCP defines one
+          shared "plug shape" for AI tools, so an agent and a tool server that have never seen each
+          other before can still connect.
+        </Analogy>
+
+        <div className="border-l-[3px] border-amber-700/40 bg-paper-ink/[0.035] py-3 pl-5 pr-4">
+          <p className="font-display text-xs font-bold uppercase tracking-[0.2em] text-amber-800">
+            In this demo
+          </p>
+          <p className="mt-2 text-[16px]">This agent can currently:</p>
+          <ul className="mt-2 list-disc space-y-1 pl-5">
+            <li>Do exact arithmetic with a real calculator, instead of guessing at numbers</li>
+            <li>
+              Answer questions about AI concepts (LLMs, RAG, agents, MCP, vector databases, and
+              more) by searching the same knowledge base used in the previous chapter
+            </li>
+            <li>
+              With "extra tools" switched on below: check the current time, look up the real
+              current weather for a city (via WeatherAPI.com), or list the topics this tutorial
+              covers, reaching those tools over MCP, described above
+            </li>
+          </ul>
+        </div>
+
+        <p>
+          The weather tool specifically is worth calling out: it calls WeatherAPI.com's real
+          current-conditions endpoint, not a canned demo value, which is exactly the point MCP's
+          "any tool source" pitch above is making concretely instead of abstractly. A tool server
+          exposed over MCP isn't limited to illustrative data; it can just as easily be a thin
+          wrapper around a real external system, and the agent calling it neither knows nor cares
+          which, only that it asked for a city's weather and got back a real answer. Try the "Check
+          the weather" sample below and look at the tool result step in the trace: it says outright
+          that the number came from a live WeatherAPI.com call just now, not a demo value dressed up
+          to look real.
+        </p>
+
+        <p>
+          Below, you can try a sample prompt or write your own: anything that needs a calculation
+          or a factual lookup works well. The reasoning trace it produces lists every tool the agent
+          called, exactly what it sent, what came back and finally its answer, so you can see its
+          thinking instead of just the result.
+        </p>
+
+        <Sources
+          items={[
+            {
+              label: "Yao et al., \"ReAct: Synergizing Reasoning and Acting in Language Models\" (2022)",
+              href: "https://arxiv.org/abs/2210.03629",
+            },
+            {
+              label: "Anthropic, \"Introducing the Model Context Protocol\" (November 2024)",
+              href: "https://www.anthropic.com/news/model-context-protocol",
+            },
+            {
+              label: "Model Context Protocol: official specification and documentation",
+              href: "https://modelcontextprotocol.io",
+            },
+          ]}
+        />
+      </TextbookPage>
+
+      <div id="try-it" className="scroll-mt-20 space-y-3">
         <h2 className="font-display text-xs font-bold uppercase tracking-[0.2em] text-paper-ink/50">
           Try it yourself
         </h2>
@@ -122,117 +241,6 @@ export default function AgentPage() {
           </div>
         )}
       </div>
-
-      <TextbookPage
-        eyebrow="Chapter 4"
-        title="AI Agents and Tool Use"
-        pageNumber="Page 4"
-        prevPage={{ href: "/rag", label: "Chapter 3: Retrieval-Augmented Generation" }}
-        nextPage={{ href: "/summarize", label: "Chapter 5: Automatic Text Summarization" }}
-      >
-        <p>
-          Even with retrieval, a language model still only produces text: it cannot perform a
-          precise calculation, take an action or reach out to another system to check something in
-          real time. It also can't decide partway through answering that it needs to do one of those
-          things; at best, it can only respond with whatever it's already been given.
-        </p>
-
-        <p>
-          An <strong>AI agent</strong> extends a language model with the ability to take actions, by
-          giving it a defined set of tools it's allowed to call (a calculator, a search function, a
-          request to another system) along with a description of what each tool does. Instead of
-          only producing a final answer, the model can produce a request to use one of these tools.
-          That request is carried out outside the model, and the result is fed back into the
-          conversation as something the model just observed. The model then decides, based on that
-          new information, whether it can answer now or needs to call another tool. Think, act,
-          observe and repeat until ready to answer: this cycle is often called the{" "}
-          <strong>ReAct</strong> pattern, short for "reason and act," and it's the mechanism behind
-          every AI system capable of doing more than talking.
-        </p>
-
-        <Analogy>
-          A plain chatbot is like asking someone a question and only getting an answer from whatever
-          they already remember. An agent is like sending someone to actually go find the answer:
-          they might do a calculation, check a source or make a call, and only report back once
-          they've gathered what's actually needed, adjusting their next step based on what they
-          learn along the way, rather than committing to one fixed plan up front.
-        </Analogy>
-
-        <p>
-          Tool use raises a practical problem, though: every application that wants to give a model
-          access to a tool would otherwise need its own custom, one-off integration for that specific
-          tool. The <strong>Model Context Protocol (MCP)</strong> is an open standard that solves
-          this by defining one common format for describing tools and exchanging tool calls and
-          results, independent of which AI model or application is using them. A program exposing
-          tools over MCP can be reached by any MCP-compatible agent, and an agent that speaks MCP can
-          use tools from any MCP-compatible source; neither side needs to know anything specific
-          about the other beyond the shared protocol.
-        </p>
-
-        <Analogy>
-          MCP plays a similar role for AI tools that a standard electrical outlet plays for
-          appliances. Without a shared standard, every appliance would need its own uniquely shaped
-          plug matched to a uniquely shaped outlet. Because manufacturers build to one shared
-          standard instead, any compliant appliance works in any compliant outlet. MCP defines one
-          shared "plug shape" for AI tools, so an agent and a tool server that have never seen each
-          other before can still connect.
-        </Analogy>
-
-        <div className="border-l-[3px] border-amber-700/40 bg-paper-ink/[0.035] py-3 pl-5 pr-4">
-          <p className="font-display text-xs font-bold uppercase tracking-[0.2em] text-amber-800">
-            In this demo
-          </p>
-          <p className="mt-2 text-[16px]">This agent can currently:</p>
-          <ul className="mt-2 list-disc space-y-1 pl-5">
-            <li>Do exact arithmetic with a real calculator, instead of guessing at numbers</li>
-            <li>
-              Answer questions about AI concepts (LLMs, RAG, agents, MCP, vector databases, and
-              more) by searching the same knowledge base used in the previous chapter
-            </li>
-            <li>
-              With "extra tools" switched on above: check the current time, look up the real
-              current weather for a city (via WeatherAPI.com), or list the topics this tutorial
-              covers, reaching those tools over MCP, described above
-            </li>
-          </ul>
-        </div>
-
-        <p>
-          The weather tool specifically is worth calling out: it calls WeatherAPI.com's real
-          current-conditions endpoint, not a canned demo value, which is exactly the point MCP's
-          "any tool source" pitch above is making concretely instead of abstractly. A tool server
-          exposed over MCP isn't limited to illustrative data; it can just as easily be a thin
-          wrapper around a real external system, and the agent calling it neither knows nor cares
-          which, only that it asked for a city's weather and got back a real answer. Try the "Check
-          the weather" sample below and look at the tool result step in the trace: it says outright
-          that the number came from a live WeatherAPI.com call just now, not a demo value dressed up
-          to look real.
-        </p>
-
-        <p>
-          Above, you could try a sample prompt or write your own: anything that needs a calculation
-          or a factual lookup works well. The reasoning trace it produced lists every tool the agent
-          called, exactly what it sent, what came back and finally its answer, so you can see its
-          thinking instead of just the result.
-        </p>
-
-        <Sources
-          items={[
-            {
-              label: "Yao et al., \"ReAct: Synergizing Reasoning and Acting in Language Models\" (2022)",
-              href: "https://arxiv.org/abs/2210.03629",
-            },
-            {
-              label: "Anthropic, \"Introducing the Model Context Protocol\" (November 2024)",
-              href: "https://www.anthropic.com/news/model-context-protocol",
-            },
-            {
-              label: "Model Context Protocol: official specification and documentation",
-              href: "https://modelcontextprotocol.io",
-            },
-          ]}
-        />
-      </TextbookPage>
     </div>
   );
 }

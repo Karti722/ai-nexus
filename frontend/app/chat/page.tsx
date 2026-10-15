@@ -1,18 +1,12 @@
 import { ChatWindow } from "@/components/ChatWindow";
 import { Analogy } from "@/components/Analogy";
 import { TextbookPage } from "@/components/TextbookPage";
+import { ChatIllustration } from "@/components/ChapterIllustrations";
 import { Sources } from "@/components/Sources";
 
 export default function ChatPage() {
   return (
     <div className="space-y-10">
-      <div className="space-y-3">
-        <h2 className="font-display text-xs font-bold uppercase tracking-[0.2em] text-paper-ink/50">
-          Try it yourself
-        </h2>
-        <ChatWindow />
-      </div>
-
       <TextbookPage
         eyebrow="Chapter 2"
         title="Large Language Models"
@@ -20,6 +14,13 @@ export default function ChatPage() {
         prevPage={{ href: "/tokenizer", label: "Chapter 1: Tokenization and the Cost of a Request" }}
         nextPage={{ href: "/rag", label: "Chapter 3: Retrieval-Augmented Generation" }}
       >
+        <ChatIllustration />
+        <a
+          href="#try-it"
+          className="mx-auto block w-fit text-sm text-paper-ink/60 underline decoration-paper-ink/25 decoration-dotted underline-offset-4 transition hover:text-brand-700 hover:decoration-brand-500"
+        >
+          ↓ Try it yourself
+        </a>
         <p>
           A large language model, or LLM, is a type of AI system trained on enormous amounts of
           text to learn the statistical patterns of language. Its core task is deceptively simple:
@@ -61,7 +62,7 @@ export default function ChatPage() {
         </p>
 
         <p>
-          Above is a live conversation with a language model. Send a message, read the reply, then
+          Below is a live conversation with a language model. Send a message, read the reply, then
           ask a follow-up that only makes sense in light of what you already discussed; you should
           see the model respond as though it remembers, for exactly the reason explained above.
         </p>
@@ -79,6 +80,13 @@ export default function ChatPage() {
           ]}
         />
       </TextbookPage>
+
+      <div id="try-it" className="scroll-mt-20 space-y-3">
+        <h2 className="font-display text-xs font-bold uppercase tracking-[0.2em] text-paper-ink/50">
+          Try it yourself
+        </h2>
+        <ChatWindow />
+      </div>
     </div>
   );
 }

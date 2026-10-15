@@ -1,18 +1,12 @@
 import { AppExplainer } from "@/components/AppExplainer";
 import { Analogy } from "@/components/Analogy";
 import { TextbookPage } from "@/components/TextbookPage";
+import { LangGraphIllustration } from "@/components/ChapterIllustrations";
 import { Sources } from "@/components/Sources";
 
 export default function LangGraphPage() {
   return (
     <div className="space-y-10">
-      <div className="space-y-3">
-        <h2 className="font-display text-xs font-bold uppercase tracking-[0.2em] text-paper-ink/50">
-          Try it yourself
-        </h2>
-        <AppExplainer />
-      </div>
-
       <TextbookPage
         eyebrow="Chapter 11"
         title="A Personalized, Diagram-Based Explainer"
@@ -20,10 +14,17 @@ export default function LangGraphPage() {
         prevPage={{ href: "/building", label: "Chapter 10: How This Tutorial Was Built" }}
         nextPage={{ href: "/glossary", label: "Glossary" }}
       >
+        <LangGraphIllustration />
+        <a
+          href="#try-it"
+          className="mx-auto block w-fit text-sm text-paper-ink/60 underline decoration-paper-ink/25 decoration-dotted underline-offset-4 transition hover:text-brand-700 hover:decoration-brand-500"
+        >
+          ↓ Try it yourself
+        </a>
         <p>
           Chapter 9 explains this app's architecture, but it does so the same way for every
           reader: one fixed diagram, one fixed block of text, regardless of what that specific
-          person actually wants to understand. The feature above works differently. Ask it your
+          person actually wants to understand. The feature below works differently. Ask it your
           own question, in your own words, and it builds a diagram and an explanation scoped to
           exactly what you asked, not a page everyone sees identically.
         </p>
@@ -61,7 +62,7 @@ export default function LangGraphPage() {
           <p className="font-display text-xs font-bold uppercase tracking-[0.2em] text-amber-800">
             In this demo
           </p>
-          <p className="mt-2 text-[16px]">Every question you ask above goes through three real steps:</p>
+          <p className="mt-2 text-[16px]">Every question you ask below goes through three real steps:</p>
           <ul className="mt-2 list-disc space-y-1 pl-5">
             <li>
               Your question is embedded and searched against the same real, pgvector-backed
@@ -105,6 +106,13 @@ export default function LangGraphPage() {
           ]}
         />
       </TextbookPage>
+
+      <div id="try-it" className="scroll-mt-20 space-y-3">
+        <h2 className="font-display text-xs font-bold uppercase tracking-[0.2em] text-paper-ink/50">
+          Try it yourself
+        </h2>
+        <AppExplainer />
+      </div>
     </div>
   );
 }
