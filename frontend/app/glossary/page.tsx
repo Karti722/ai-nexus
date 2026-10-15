@@ -167,6 +167,7 @@ export default function GlossaryPage() {
         title="Glossary of Key Terms"
         pageNumber="Glossary"
         prevPage={{ href: "/langgraph", label: "Chapter 11: A Personalized, Diagram-Based Explainer" }}
+        nextPage={{ href: "/technologies", label: "Every AI Technology in This App" }}
       >
         <p>
           Every term introduced across the eleven chapters of this tutorial, gathered in one place.

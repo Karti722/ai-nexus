@@ -144,23 +144,6 @@ export function AppExplainer() {
       {loading && <p className="text-sm italic text-paper-ink/40">Searching the real knowledge base and drawing…</p>}
       {error && <p className="text-sm text-red-600">Error: {error}</p>}
 
-      {(diagramSvg || diagramError) && (
-        <div className="space-y-2">
-          <p className="font-display text-xs font-bold uppercase tracking-[0.2em] text-brand-700">Diagram</p>
-          <p className="text-sm text-paper-ink/60">
-            {diagramCaption ||
-              "A visual walkthrough of the answer to your specific question, generated fresh, not a fixed illustration everyone sees."}
-          </p>
-          <div className="overflow-x-auto rounded-sm border border-paper-ink/15 bg-white p-4">
-            {diagramSvg ? (
-              <div dangerouslySetInnerHTML={{ __html: diagramSvg }} />
-            ) : (
-              <p className="text-sm italic text-paper-ink/50">{diagramError}</p>
-            )}
-          </div>
-        </div>
-      )}
-
       {explanation && (
         <div className="border-l-[3px] border-brand-500/50 bg-brand-500/[0.04] py-3 pl-5 pr-4">
           <div className="flex items-center justify-between gap-3">
@@ -178,6 +161,23 @@ export function AppExplainer() {
             )}
           </div>
           <p className="mt-2 whitespace-pre-wrap text-[15.5px]">{explanation}</p>
+        </div>
+      )}
+
+      {(diagramSvg || diagramError) && (
+        <div className="space-y-2">
+          <p className="font-display text-xs font-bold uppercase tracking-[0.2em] text-brand-700">Diagram</p>
+          <p className="text-sm text-paper-ink/60">
+            {diagramCaption ||
+              "A visual walkthrough of the answer to your specific question, generated fresh, not a fixed illustration everyone sees."}
+          </p>
+          <div className="overflow-x-auto rounded-sm border border-paper-ink/15 bg-white p-4">
+            {diagramSvg ? (
+              <div dangerouslySetInnerHTML={{ __html: diagramSvg }} />
+            ) : (
+              <p className="text-sm italic text-paper-ink/50">{diagramError}</p>
+            )}
+          </div>
         </div>
       )}
     </div>

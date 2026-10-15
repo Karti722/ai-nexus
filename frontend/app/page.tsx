@@ -191,6 +191,15 @@ export default function HomePage() {
             Glossary of Key Terms
           </span>
         </Link>
+
+        <Link
+          href="/technologies"
+          className="group mt-1 flex items-baseline gap-3 py-2 transition"
+        >
+          <span className="shrink-0 font-display text-sm italic text-paper-ink/60 transition group-hover:text-brand-700">
+            Every AI Technology in This App
+          </span>
+        </Link>
       </div>
 
       <div className="mt-14 flex items-center justify-between border-t border-paper-ink/15 pt-3 font-display text-xs uppercase tracking-widest text-paper-ink/40">
