@@ -12,7 +12,7 @@ import { EMBEDDING_DIMS } from "./embeddingsClient";
  * looks in practice with a real vector DB rather than an exact in-memory scan).
  */
 
-export interface StoredChunk {
+interface StoredChunk {
   id: number;
   source: string;
   text: string;
@@ -94,11 +94,6 @@ function toVectorLiteral(embedding: number[]): string {
 
 export async function isStoreEmpty(): Promise<boolean> {
   return (await countChunks()) === 0;
-}
-
-export async function clearStore(): Promise<void> {
-  await ensureReady();
-  await pool.query("DELETE FROM chunks");
 }
 
 /** Removes every chunk for one source article, so re-adding it (after an

@@ -184,11 +184,10 @@ own next step at runtime; Chapter 11's job (retrieve real context, then always d
 then always write an explanation) is a *fixed* sequence that never actually branches, so a
 general-purpose graph library earns its place here for a different reason than an agent framework
 usually does: every node name becomes a compile-time string literal LangGraph's own types check,
-rather than something assembled and validated by hand. (An earlier, since-removed prototype did
-try to make this graph *user-configurable* at runtime, closer to a real agent-framework use case;
-see `explainer/buildAndRun.ts`'s own comments, and `backend/src/agentGraph/` for what's left of it,
-dead code, never imported by `server.ts` and never called by any page). The trade-off is real and
-was hit immediately: `@langchain/anthropic` wraps Claude behind its own API surface, and that
+rather than something assembled and validated by hand. (An earlier prototype tried to make this
+graph *user-configurable* at runtime instead, closer to a real agent-framework use case; see
+`explainer/buildAndRun.ts`'s own comments for why that approach was dropped.) The trade-off is
+real and was hit immediately: `@langchain/anthropic` wraps Claude behind its own API surface, and that
 wrapper doesn't yet know about `claude-sonnet-5` (see `explainer/buildAndRun.ts`'s `topP` workaround
 above), the kind of version-lag friction a direct SDK call never has. LangChain/LangGraph were not
 used to rebuild `agentLoop.ts` itself: doing so would have been the same capability wrapped in a

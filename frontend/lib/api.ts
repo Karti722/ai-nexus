@@ -95,26 +95,26 @@ export function runAgent(message: string, useMcp: boolean): Promise<AgentRespons
 
 export type SummarizeMode = "abstractive" | "extractive";
 
-export interface AbstractiveSummarizeResponse {
+interface AbstractiveSummarizeResponse {
   mode: "abstractive";
   summary: string;
   mock: boolean;
 }
 
-export interface RankedSentence {
+interface RankedSentence {
   text: string;
   index: number;
   score: number;
 }
 
-export interface ReadabilityScore {
+interface ReadabilityScore {
   fleschReadingEase: number;
   fleschKincaidGrade: number;
   wordCount: number;
   sentenceCount: number;
 }
 
-export interface ExtractiveSummarizeResponse {
+interface ExtractiveSummarizeResponse {
   mode: "extractive";
   sentences: RankedSentence[];
   totalSentences: number;
@@ -133,7 +133,7 @@ export function summarizeText(
   return postJson<SummarizeResponse>("/api/summarize", { text, sentenceCount, mode });
 }
 
-export interface CostEstimate {
+interface CostEstimate {
   model: string;
   inputCostUsd: number;
   inputRatePerMillion: number;
@@ -149,7 +149,7 @@ export function tokenizeText(text: string): Promise<TokenizeResponse> {
   return postJson<TokenizeResponse>("/api/tokenize", { text });
 }
 
-export interface CacheSimResult {
+interface CacheSimResult {
   query: string;
   hit: boolean;
   matchedQuery: string | null;

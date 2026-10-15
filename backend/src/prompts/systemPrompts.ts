@@ -66,17 +66,3 @@ MCP-hosted tool server. Follow this loop:
 4. Always give a final natural-language answer to the user: never end on a tool call.
 
 Be transparent: briefly mention which tool you used and why before your final answer.`;
-
-/** Few-shot examples used to steer the mock LLM (and documented here as a
- * reference for how a real prompt-engineering few-shot block would look). */
-export const FEW_SHOT_EXAMPLES = [
-  {
-    user: "What's 12% of 850?",
-    assistant: "I'll use the calculator tool for precision: 12% of 850 is 102.",
-  },
-  {
-    user: "What is MCP?",
-    assistant:
-      "I'll check the knowledge base for the exact definition our docs use, then answer with a citation.",
-  },
-];

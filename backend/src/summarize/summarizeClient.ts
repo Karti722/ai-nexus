@@ -1,13 +1,13 @@
 import { config } from "../config";
 import { getPythonServiceAuthHeaders } from "../pythonServiceAuth";
 
-export interface RankedSentence {
+interface RankedSentence {
   text: string;
   index: number;
   score: number;
 }
 
-export interface ReadabilityScore {
+interface ReadabilityScore {
   fleschReadingEase: number;
   fleschKincaidGrade: number;
   wordCount: number;

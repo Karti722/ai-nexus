@@ -1,7 +1,7 @@
 import { config } from "../config";
 import { getPythonServiceAuthHeaders } from "../pythonServiceAuth";
 
-export interface CacheSimResult {
+interface CacheSimResult {
   query: string;
   hit: boolean;
   matchedQuery: string | null;

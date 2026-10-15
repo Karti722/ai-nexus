@@ -4,7 +4,7 @@ import { AGENT_SYSTEM_PROMPT } from "../prompts/systemPrompts";
 import { callMcpTool, getMcpTools } from "./mcpClient";
 import { LOCAL_TOOLS } from "./tools";
 
-export interface AgentTraceStep {
+interface AgentTraceStep {
   type: "tool_call" | "tool_result" | "final";
   toolName?: string;
   input?: Record<string, unknown>;
