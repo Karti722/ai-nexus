@@ -177,6 +177,24 @@ third party's uptime, pricing and rate limits, mitigated entirely by mock mode (
 section), which is why mock mode is this app's actual default state, not a fallback bolted on
 after the fact.
 
+**Multi-step AI workflow (Chapter 11 / `/explain`): LangChain + LangGraph.** Considered instead:
+a second hand-built loop like `agentLoop.ts`, or no framework at all (chaining a few async
+functions by hand). `agentLoop.ts`'s ReAct loop exists specifically to show an agent deciding its
+own next step at runtime; Chapter 11's job (retrieve real context, then always draw a diagram,
+then always write an explanation) is a *fixed* sequence that never actually branches, so a
+general-purpose graph library earns its place here for a different reason than an agent framework
+usually does: every node name becomes a compile-time string literal LangGraph's own types check,
+rather than something assembled and validated by hand. (An earlier, since-removed prototype did
+try to make this graph *user-configurable* at runtime, closer to a real agent-framework use case;
+see `explainer/buildAndRun.ts`'s own comments, and `backend/src/agentGraph/` for what's left of it,
+dead code, never imported by `server.ts` and never called by any page). The trade-off is real and
+was hit immediately: `@langchain/anthropic` wraps Claude behind its own API surface, and that
+wrapper doesn't yet know about `claude-sonnet-5` (see `explainer/buildAndRun.ts`'s `topP` workaround
+above), the kind of version-lag friction a direct SDK call never has. LangChain/LangGraph were not
+used to rebuild `agentLoop.ts` itself: doing so would have been the same capability wrapped in a
+framework, not a new one, and this app would rather show both approaches side by side than pick a
+framework for its own sake.
+
 ---
 
 ## 3. Directory structure
@@ -187,7 +205,9 @@ ai-nexus/
 ├── info/
 │   ├── codebase.md                # this file: architecture + local setup
 │   ├── deployment.md              # how this app was deployed to GCP (Cloud Run + Neon), by hand, for $0/month
-│   └── CI-CD.md                   # how deployment.md's redeploy steps got automated with GitHub Actions, and why
+│   ├── CI-CD.md                   # how deployment.md's redeploy steps got automated with GitHub Actions, and why
+│   ├── personalized-explainer-spec.md # the design record for Chapter 11 / `/explain` (see `explainer/` below)
+│   └── knowledge-base.md          # how to add/edit/remove a knowledge-base article with `npm run kb`
 ├── package.json                   # root orchestration scripts (npm run dev, npm run stop, etc.)
 ├── docker-compose.yml             # wires postgres (pgvector), python-service, backend, frontend together
 ├── .env.example                   # copy to .env and fill in what you have
@@ -203,8 +223,10 @@ ai-nexus/
 │   ├── package.json
 │   ├── tsconfig.json
 │   ├── Dockerfile
+│   ├── scripts/
+│   │   └── kb.ts                  # npm run kb -- upsert|remove|list: manage the knowledge base directly
 │   ├── data/
-│   │   ├── knowledge-base/        # markdown docs the RAG pipeline indexes
+│   │   ├── knowledge-base/        # markdown docs used only to seed a brand-new, empty database
 │   │   │   ├── 01-llms.md
 │   │   │   ├── 02-rag.md
 │   │   │   ├── 03-prompt-engineering.md
@@ -226,12 +248,15 @@ ai-nexus/
 │       ├── rag/
 │       │   ├── chunker.ts         # splits markdown into overlapping chunks
 │       │   ├── embeddingsClient.ts# calls python-service for embeddings, throws on failure
-│       │   ├── vectorStore.ts     # Postgres + pgvector store, HNSW-indexed cosine search
-│       │   └── seedDocuments.ts   # loads knowledge-base/*.md into the vector store
+│       │   ├── vectorStore.ts     # Postgres + pgvector: the `chunks` table (search) and `documents` table (titles/content)
+│       │   ├── knowledgeBaseFiles.ts # titles + full article content, read from `documents`, not from disk
+│       │   └── seedDocuments.ts   # on a brand-new empty database, chunks+embeds knowledge-base/*.md into both tables
 │       ├── agent/
 │       │   ├── tools.ts           # local tools: calculator, search_knowledge_base
 │       │   ├── mcpClient.ts       # MCP client: spawns & talks to mcp-server/
 │       │   └── agentLoop.ts       # the think → act → observe → answer loop
+│       ├── explainer/
+│       │   └── buildAndRun.ts     # Chapter 11 / `/explain`: a 3-node LangGraph StateGraph (retrieve → diagram → explain)
 │       ├── summarize/
 │       │   └── summarizeClient.ts # calls python-service's /summarize (extractive mode only)
 │       ├── cache/
@@ -245,7 +270,8 @@ ai-nexus/
 │       │   ├── summarize.route.ts # POST /api/summarize (mode: "abstractive" calls llmClient, "extractive" calls python-service)
 │       │   ├── tokenizer.route.ts # POST /api/tokenize (calls Anthropic's real count_tokens API directly)
 │       │   ├── cache.route.ts     # POST /api/cache-sim
-│       │   └── eval.route.ts      # POST /api/evaluate
+│       │   ├── eval.route.ts      # POST /api/evaluate
+│       │   └── explain.route.ts   # POST /api/explain (question → { mermaidDefinition, diagramCaption, explanation })
 │       └── utils/
 │           └── errors.ts          # extracts a real, user-facing message from thrown errors
 │
@@ -288,7 +314,8 @@ ai-nexus/
     │   ├── Analogy.tsx
     │   ├── CaseStudy.tsx
     │   ├── Sources.tsx
-    │   └── ArchitectureDiagram.tsx
+    │   ├── ArchitectureDiagram.tsx
+    │   └── AppExplainer.tsx        # Chapter 11 / `/explain`'s shared UI: question box, Mermaid render, "Listen" button
     └── app/
         ├── layout.tsx              # shared shell (nav + page container)
         ├── globals.css             # Tailwind + shared utility classes
@@ -304,7 +331,10 @@ ai-nexus/
         ├── enterprise/page.tsx      # Ch.8: real-world case studies
         ├── architecture/page.tsx    # Ch.9: this system's own architecture
         ├── building/page.tsx        # Ch.10: how this tutorial was built
-        └── glossary/page.tsx        # reference: every term, linked back to its chapter
+        ├── langgraph/page.tsx       # Ch.11: the full textbook treatment of `/explain` below, LangChain/LangGraph explained
+        ├── explain/page.tsx         # the same AppExplainer tool, bare, no chapter chrome (see info/personalized-explainer-spec.md)
+        ├── glossary/page.tsx        # reference: every term, linked back to its chapter
+        └── technologies/page.tsx    # reference: every real AI technology used, in plain language, linked to the page that demos it
 ```
 
 ---
@@ -406,9 +436,30 @@ ai-nexus/
     concurrent traffic, all competing for Neon's much smaller direct-connection ceiling if pooling
     isn't used. Verified live: 25 concurrent requests against a database-backed endpoint all
     succeeded on the pooled connection string, after the same test would have risked exhausting
-    the direct one under real multi-user load.
-  - `seedDocuments.ts`: on first boot, chunks + embeds every file in
-    `data/knowledge-base/` and writes it into the vector store; skipped on later restarts.
+    the direct one under real multi-user load. A second table, `documents` (`source`, `title`,
+    `content`), holds each article's display title and full original text, keyed by the same
+    `source` value as `chunks`. This used to be read straight off `data/knowledge-base/*.md` at
+    runtime instead (via `knowledgeBaseFiles.ts`), which worked until those files were ever
+    missing from a deployed container: a RAG query calls `getKnowledgeBaseTitle()` for every
+    citation, so a missing knowledge-base directory crashed every single query, not just an
+    article-browsing endpoint, exactly as happened once after the files were deleted locally and
+    the backend was restarted fresh (no in-memory cache left to paper over it). Moving titles and
+    content into the database removed that filesystem dependency entirely: the knowledge-base
+    `.md` files now matter only at the one moment `seedDocuments.ts` runs against a brand-new,
+    empty database, never at request time.
+  - `knowledgeBaseFiles.ts`: `listKnowledgeBaseFiles()`, `getKnowledgeBaseTitle()` and
+    `readKnowledgeBaseFile()`, the same three functions `rag.route.ts` always called, now backed
+    by the `documents` table above instead of `fs.readFileSync`.
+  - `seedDocuments.ts`: only runs when the `chunks` table is empty (a brand-new database). Chunks
+    + embeds every file in `data/knowledge-base/` into `chunks`, and now also calls
+    `upsertDocument()` for each file's title/content into `documents`, so a fresh seed populates
+    both tables together.
+  - `scripts/kb.ts` (`npm run kb -- upsert|remove|list`): the day-to-day way to add, edit or
+    remove one article after the initial seed, reusing this same chunk-then-embed pipeline for a
+    single file instead of the whole knowledge base at once. Writes straight to whatever database
+    `POSTGRES_URL` points at, with no separate staging step, so local dev and the deployed app
+    share one knowledge base unless `POSTGRES_URL` is deliberately pointed elsewhere first. Full
+    walkthrough, including what a chunk/embedding actually is: `info/knowledge-base.md`.
 - **`src/agent/`**
   - `tools.ts`: two local tools: `calculator` (a hand-written recursive-descent arithmetic
     evaluator, deliberately no `eval()`/`Function()`) and `search_knowledge_base` (wraps the RAG
@@ -418,6 +469,33 @@ ai-nexus/
     the MCP server hasn't been built yet.
   - `agentLoop.ts`: the ReAct loop: ask the LLM for a step, execute a tool if requested, feed the
     result back, repeat (capped at 4 steps), return the full trace plus final answer.
+- **`src/explainer/buildAndRun.ts`**: Chapter 11 and `/explain`'s real implementation (see
+  `info/personalized-explainer-spec.md` for the full design reasoning). A genuinely different
+  approach than `agentLoop.ts` above on purpose: not an agent making its own runtime decisions,
+  but a fixed, three-node **LangGraph** `StateGraph` (`@langchain/langgraph`), wired
+  `START → retrieve → diagram → explain → END`, appropriate here because the workflow's shape
+  never changes question to question, only its content does:
+  - `retrieve`: embeds the question and runs the exact same `searchSimilar()` call RAG and the
+    agent's `search_knowledge_base` tool already use, so the diagram/explanation are grounded in
+    the same real knowledge base rather than a second, parallel data source that could drift out
+    of sync with it.
+  - `diagram`: asks Claude (via LangChain's `ChatAnthropic` wrapper, `@langchain/anthropic`, not
+    `anthropicClient.ts`) for a Mermaid diagram definition plus a one-sentence caption describing
+    that specific diagram, in one call, parsed apart by `extractCaptionAndMermaid()`. The model
+    only ever produces Mermaid's text syntax, never raw coordinates; a deterministic renderer
+    (Mermaid.js, frontend-side) owns all actual layout, the same pattern Claude and ChatGPT
+    themselves use when asked to draw something.
+  - `explain`: asks Claude for a plain-language written explanation from the same retrieved
+    context.
+
+  Because this path calls `ChatAnthropic` directly rather than going through `llmClient`, it does
+  **not** participate in this app's mock-mode fallback (see `llm/index.ts` above): it needs a real
+  `ANTHROPIC_API_KEY` unconditionally. A real, live bug found building this: `@langchain/anthropic`
+  only knows to omit an internal `top_p` sentinel value for a hardcoded list of older model names
+  that predates `claude-sonnet-5`, so without a workaround it sends an invalid value Claude's API
+  rejects outright; the fix is forcing the model instance's `topP` property to `undefined` directly
+  after construction, since the constructor's own options have no path to the correct behavior for
+  a model outside that hardcoded list.
 - **`src/summarize/summarizeClient.ts`**, **`src/cache/cacheClient.ts`**, **`src/eval/evalClient.ts`**:
   one thin client per Python-service endpoint, all following the same shape as
   `embeddingsClient.ts`'s HTTP call: POST, translate the Python service's `snake_case` JSON into
@@ -452,9 +530,12 @@ ai-nexus/
 - **`src/server.ts`**: wires up Express, CORS (scoped to `config.frontendUrls`, not wide open;
   see `.env.example`'s `FRONTEND_URL`), JSON body parsing, seeds the knowledge base on boot and
   starts listening.
-- **`data/knowledge-base/*.md`**: the actual content the RAG pipeline indexes: short explainer
-  docs about LLMs, RAG, prompt engineering, AI agents, MCP, vector databases and full-stack
-  architecture, i.e., the same concepts this app demonstrates, written up as its own test corpus.
+- **`data/knowledge-base/*.md`**: short explainer docs about LLMs, RAG, prompt engineering, AI
+  agents, MCP, vector databases and full-stack architecture, i.e., the same concepts this app
+  demonstrates, written up as its own test corpus. Only ever read by `seedDocuments.ts`, and only
+  on a brand-new, empty database (see `vectorStore.ts` above); the running app never reads this
+  directory at request time. `backend/Dockerfile` correspondingly no longer `COPY`s it into the
+  image at all, since nothing at runtime needs it there any more.
 
 ### `mcp-server/`: a standalone MCP server
 A separate Node process, deliberately decoupled from the Express backend, speaking the Model
@@ -557,17 +638,25 @@ exceptions: both now call a real hosted model directly instead of approximating 
   language, a "REAL" pill, since it wraps the same retrieval RAG uses) — falling back to the original
   plain text whenever a tool's output doesn't match its expected shape (an error message, say), so a
   parse miss never hides real information. Also `ConceptCard` + `NavBar` (landing page and
-  navigation) and the shared "textbook" vocabulary used by every chapter page: `TextbookPage` (the
-  printed-page shell: eyebrow, title, page number, plus an optional `prevPage`/`nextPage` link
-  rendered below the footer on every one of the twelve pages that uses it, in the same
-  Introduction → Chapter 1 → ... → Chapter 10 → Glossary order the homepage's own table of contents
-  lists them in; each end of that sequence simply omits the prop it doesn't have rather than
-  rendering a dead link), `Analogy` and `CaseStudy` (left-border callout boxes), `Sources` (a
-  citation list) and `ArchitectureDiagram` (Chapter 9's system diagram).
+  navigation) and the shared "textbook" vocabulary used by every chapter-style page: `TextbookPage`
+  (the printed-page shell: eyebrow, title, page number, plus an optional `prevPage`/`nextPage` link
+  rendered below the footer, in the same Introduction → Chapter 1 → ... → Chapter 11 → Glossary →
+  Technologies order the homepage's own table of contents lists them in; each end of that sequence
+  simply omits the prop it doesn't have rather than rendering a dead link), `Analogy` and
+  `CaseStudy` (left-border callout boxes), `Sources` (a citation list), `ArchitectureDiagram`
+  (Chapter 9's system diagram) and `AppExplainer` (Chapter 11 and `/explain`'s shared
+  implementation: the question input, Mermaid diagram render, written explanation and an optional
+  browser-native "Listen" text-to-speech button — one real component, imported by both pages, see
+  `info/personalized-explainer-spec.md` section 2 for why).
 - **`app/`**: one route per chapter (see the directory tree above for the full chapter-to-route
   mapping), plus `/` (the table of contents, with an author byline linking to
   https://kartikeyakumaria.com/ under the title), `/introduction` (front matter: why this
-  guide exists, ahead of Chapter 1) and `/glossary` (every term, cross-linked to its chapter).
+  guide exists, ahead of Chapter 1), `/explain` (the same `AppExplainer` tool Chapter 11 uses,
+  rendered bare with no chapter chrome, no LangGraph explanation and no link back except to the
+  homepage, for a first-time visitor who hasn't chosen to read a textbook page yet; linked from a
+  small callout near the top of the homepage rather than from the table of contents), `/glossary`
+  (every term, cross-linked to its chapter) and `/technologies` (every real AI technology used in
+  this app, in plain language, with a link to the page that actually demonstrates each one).
 
 ---
 
@@ -695,11 +784,14 @@ Docker Compose path with `docker compose down`, which stops everything including
 ## 7. Demo: what you'll see when you run it
 
 **Landing page (`/`)**: a printed-textbook-styled table of contents listing the introduction, all
-ten chapters and the glossary, each linking straight to its page. The ten chapters are grouped
-under three part labels (Foundations, Applied Techniques, Beyond the Model), a homepage-only
-navigational grouping: no individual chapter page, and nothing elsewhere in the app, refers to
-these parts, each chapter's own eyebrow is still just "Chapter N." Each entry also has a large
-faint serif numeral to its left, purely decorative.
+eleven chapters, the glossary and the technologies reference page, each linking straight to its
+page. The eleven chapters are grouped under four part labels (Foundations, Applied Techniques,
+Beyond the Model, Ask the App), a homepage-only navigational grouping: no individual chapter page,
+and nothing elsewhere in the app, refers to these parts, each chapter's own eyebrow is still just
+"Chapter N." Each entry also has a large faint serif numeral to its left, purely decorative. A
+small separate callout near the top of the page, before the table of contents, links to `/explain`
+(the same tool Chapter 11 uses, with no chapter chrome) for a visitor who'd rather ask a question
+than read.
 
 **Introduction (`/introduction`)**: front matter, not a numbered chapter: why this guide exists,
 the gap between what universities teach and what applied AI engineering actually looks like in
@@ -750,8 +842,20 @@ this very system, including a diagram of how the four services talk to each othe
 **Chapter 10: How This Tutorial Was Built (`/building`)**: the story of how an AI coding
 assistant and a person built this app together, iteration by iteration.
 
-**Glossary (`/glossary`)**: every term introduced across all ten chapters, each linked back to
+**Chapter 11: A Personalized, Diagram-Based Explainer (`/langgraph`)**: what LangChain and
+LangGraph actually are and how this feature is built with them, plus a "Try it yourself" section
+embedding the exact same tool `/explain` is. Ask a question about how this app itself works (a
+sample question is one click away) and get back a real Mermaid diagram with a one-sentence caption,
+a written explanation grounded in the same knowledge base RAG uses, and an optional "Listen"
+button that reads the explanation aloud via the browser's own text-to-speech.
+
+**Glossary (`/glossary`)**: every term introduced across all eleven chapters, each linked back to
 where it's explained and, where one exists, to a real primary source.
+
+**Technologies (`/technologies`)**: a plain-language reference listing every real AI technology
+actually running in this app (Claude, Voyage embeddings, pgvector, the agent, MCP, LangChain/
+LangGraph, semantic caching, summarization, evaluation) and exactly which page lets you try each
+one, for a reader who wants the map before (or instead of) reading all eleven chapters in order.
 
 ---
 

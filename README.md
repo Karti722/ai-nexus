@@ -23,7 +23,9 @@ these same patterns in production, a full architectural tour of the system servi
 and the story of how the whole thing was actually built. Chapter 11 flips the whole premise
 around: ask it any question about how this app itself works, and it builds a real diagram and
 explanation just for that question, also reachable on its own at `/explain` for anyone who'd
-rather ask than read.
+rather ask than read. A standalone reference page, `/technologies`, rounds things out with a
+plain-language overview of every one of those real technologies and exactly which page lets you
+try each one for yourself.
 
 It's built for two audiences at once: engineers who want to see a real, inspectable
 implementation of these concepts end to end, and newcomers who want to learn them hands-on instead
