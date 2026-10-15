@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Reveal, RevealGroup } from "./Reveal";
 
 interface AdjacentPage {
   href: string;
@@ -30,7 +31,7 @@ export function TextbookPage({
   nextPage,
 }: TextbookPageProps) {
   return (
-    <div className="relative mx-auto max-w-3xl rounded-sm bg-paper px-5 py-7 font-serif text-paper-ink shadow-[0_20px_45px_-25px_rgba(43,38,32,0.35)] sm:px-14 sm:py-14">
+    <Reveal className="relative mx-auto max-w-3xl rounded-sm bg-paper px-5 py-7 font-serif text-paper-ink shadow-[0_20px_45px_-25px_rgba(43,38,32,0.35)] sm:px-14 sm:py-14">
       <div
         className="pointer-events-none absolute right-0 top-0 h-7 w-7 bg-paper-dark sm:h-9 sm:w-9"
         style={{ clipPath: "polygon(100% 0, 0 0, 100% 100%)" }}
@@ -48,7 +49,9 @@ export function TextbookPage({
         {title}
       </h1>
 
-      <div className="mt-7 space-y-5 text-[16px] leading-[1.85] text-paper-ink/85">{children}</div>
+      <div className="mt-7 space-y-5 text-[16px] leading-[1.85] text-paper-ink/85">
+        <RevealGroup>{children}</RevealGroup>
+      </div>
 
       <div className="mt-10 flex items-center justify-between border-t border-paper-ink/15 pt-3 font-display text-xs uppercase tracking-widest text-paper-ink/40">
         <span>AI Nexus: An Interactive Tutorial</span>
@@ -85,6 +88,6 @@ export function TextbookPage({
           )}
         </div>
       )}
-    </div>
+    </Reveal>
   );
 }

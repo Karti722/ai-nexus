@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { HomeIllustration } from "@/components/HomeIllustration";
+import { Reveal } from "@/components/Reveal";
 
 const CHAPTERS = [
   {
@@ -89,7 +91,9 @@ export default function HomePage() {
         aria-hidden
       />
 
-      <p className="font-display text-xs font-bold uppercase tracking-[0.25em] text-brand-600 sm:tracking-[0.35em]">
+      <HomeIllustration />
+
+      <p className="mt-4 font-display text-xs font-bold uppercase tracking-[0.25em] text-brand-600 sm:tracking-[0.35em]">
         An Interactive Tutorial
       </p>
 
@@ -147,38 +151,40 @@ export default function HomePage() {
         <ol className="mt-1 space-y-1">
           {CHAPTERS.map((chapter, index) => (
             <li key={chapter.href}>
-              {chapter.part !== CHAPTERS[index - 1]?.part && (
-                <div className="mb-1 mt-8 flex items-baseline gap-3 first:mt-6">
-                  <span className="shrink-0 font-display text-[11px] font-bold uppercase tracking-[0.25em] text-brand-600/70">
-                    {chapter.part}
-                  </span>
-                  <span className="h-px flex-1 bg-paper-ink/10" aria-hidden />
-                </div>
-              )}
-              <div className="group flex items-start gap-4 sm:gap-6">
-                <span
-                  className="hidden shrink-0 pt-2 font-display text-4xl font-black leading-none text-paper-ink/10 transition group-hover:text-brand-500/25 sm:block sm:text-5xl"
-                  aria-hidden
-                >
-                  {String(index + 1).padStart(2, "0")}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <Link
-                    href={chapter.href}
-                    className="flex flex-wrap items-baseline gap-x-3 gap-y-1 border-b border-paper-ink/10 py-4 transition group-hover:border-brand-500/40"
+              <Reveal>
+                {chapter.part !== CHAPTERS[index - 1]?.part && (
+                  <div className="mb-1 mt-8 flex items-baseline gap-3 first:mt-6">
+                    <span className="shrink-0 font-display text-[11px] font-bold uppercase tracking-[0.25em] text-brand-600/70">
+                      {chapter.part}
+                    </span>
+                    <span className="h-px flex-1 bg-paper-ink/10" aria-hidden />
+                  </div>
+                )}
+                <div className="group flex items-start gap-4 sm:gap-6">
+                  <span
+                    className="hidden shrink-0 pt-2 font-display text-4xl font-black leading-none text-paper-ink/10 transition group-hover:text-brand-500/25 sm:block sm:text-5xl"
+                    aria-hidden
                   >
-                    <span className="shrink-0 font-display text-xs font-bold uppercase tracking-widest text-brand-600 transition group-hover:text-brand-800">
-                      {chapter.number}
-                    </span>
-                    <span className="font-display text-lg font-semibold text-paper-ink transition group-hover:text-brand-700 sm:text-xl">
-                      {chapter.title}
-                    </span>
-                  </Link>
-                  <p className="pt-1 text-sm text-paper-ink/50 transition group-hover:text-paper-ink/70">
-                    {chapter.description}
-                  </p>
+                    {String(index + 1).padStart(2, "0")}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <Link
+                      href={chapter.href}
+                      className="flex flex-wrap items-baseline gap-x-3 gap-y-1 border-b border-paper-ink/10 py-4 transition group-hover:border-brand-500/40"
+                    >
+                      <span className="shrink-0 font-display text-xs font-bold uppercase tracking-widest text-brand-600 transition group-hover:text-brand-800">
+                        {chapter.number}
+                      </span>
+                      <span className="font-display text-lg font-semibold text-paper-ink transition group-hover:text-brand-700 sm:text-xl">
+                        {chapter.title}
+                      </span>
+                    </Link>
+                    <p className="pt-1 text-sm text-paper-ink/50 transition group-hover:text-paper-ink/70">
+                      {chapter.description}
+                    </p>
+                  </div>
                 </div>
-              </div>
+              </Reveal>
             </li>
           ))}
         </ol>
