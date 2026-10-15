@@ -141,7 +141,15 @@ export function AppExplainer() {
         </ol>
       </div>
 
-      {loading && <p className="text-sm italic text-paper-ink/40">Searching the real knowledge base and drawing…</p>}
+      {loading && (
+        <div className="flex items-center gap-2.5">
+          <span
+            aria-hidden
+            className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-paper-ink/15 border-t-brand-500"
+          />
+          <p className="text-sm italic text-paper-ink/40">Generating explanation, please wait…</p>
+        </div>
+      )}
       {error && <p className="text-sm text-red-600">Error: {error}</p>}
 
       {explanation && (
