@@ -7,7 +7,8 @@ export default function IntroductionPage() {
       <TextbookPage
         eyebrow="Introduction"
         title="Why This Guide Exists"
-        pageNumber="Page ii"
+        pageNumber="Page iii"
+        prevPage={{ href: "/contents", label: "Table of Contents" }}
         nextPage={{ href: "/tokenizer", label: "Chapter 1: Tokenization and the Cost of a Request" }}
       >
         <p>
