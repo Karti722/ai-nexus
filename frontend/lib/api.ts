@@ -186,3 +186,11 @@ export interface ExplainResponse {
 export function explainApp(question: string): Promise<ExplainResponse> {
   return postJson<ExplainResponse>("/api/explain", { question });
 }
+
+export interface LangChainDemoResponse {
+  answer: string;
+}
+
+export function explainTermWithLangChain(term: string): Promise<LangChainDemoResponse> {
+  return postJson<LangChainDemoResponse>("/api/langchain-demo", { term });
+}

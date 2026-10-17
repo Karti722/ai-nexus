@@ -64,9 +64,18 @@ const TERMS = [
     },
   },
   {
+    term: "LangChain",
+    definition:
+      "A library of standardized building blocks for a single call to a language model: one interface across different providers, reusable prompt templates, and typed message objects, independent of any multi-step workflow. LangGraph (below) is built on top of it. See Chapter 10.",
+    source: {
+      label: "LangChain: official documentation",
+      href: "https://python.langchain.com/docs/introduction/",
+    },
+  },
+  {
     term: "LangGraph",
     definition:
-      "A framework, built on LangChain, for defining a multi-step AI workflow as an explicit graph of steps and connections rather than one single prompt or one fixed loop. See Chapter 11.",
+      "A framework, built on LangChain, for defining a multi-step AI workflow as an explicit graph of steps and connections rather than one single prompt or one fixed loop. See Chapter 10.",
     source: {
       label: "LangChain, \"LangGraph\": official documentation",
       href: "https://langchain-ai.github.io/langgraph/",
@@ -166,7 +175,7 @@ export default function GlossaryPage() {
         eyebrow="Reference"
         title="Glossary of Key Terms"
         pageNumber="Glossary"
-        prevPage={{ href: "/langgraph", label: "Chapter 11: A Personalized, Diagram-Based Explainer" }}
+        prevPage={{ href: "/building", label: "Chapter 11: How This Tutorial Was Built" }}
         nextPage={{ href: "/technologies", label: "Every AI Technology in This App" }}
       >
         <p>

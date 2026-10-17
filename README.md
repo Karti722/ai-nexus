@@ -18,12 +18,13 @@ summarization, semantic caching, output evaluation, multi-step AI workflows) and
 genuinely working demo of that concept, not a mockup. Ask the chat page a question and a real
 Claude API call answers it. Ask the RAG page something and it actually retrieves from a real
 pgvector-backed Postgres database. Ask the agent to check the weather and it calls a real weather
-API through a real MCP tool server. Chapters 8, 9 and 10 then zoom out: real companies running
-these same patterns in production, a full architectural tour of the system serving these pages,
-and the story of how the whole thing was actually built. Chapter 11 flips the whole premise
-around: ask it any question about how this app itself works, and it builds a real diagram and
-explanation just for that question, also reachable on its own at `/explain` for anyone who'd
-rather ask than read. A standalone reference page, `/technologies`, rounds things out with a
+API through a real MCP tool server. Chapters 8 and 9 then zoom out: real companies running these
+same patterns in production, and a full architectural tour of the system serving these pages.
+Chapter 10 flips the whole premise around: ask it any question about how this app itself works,
+and it builds a real diagram and explanation just for that question, also reachable on its own at
+`/explain` for anyone who'd rather ask than read. Chapter 11 closes the loop with the story of how
+the whole thing was actually built. A standalone reference page, `/technologies`, rounds things out
+with a
 plain-language overview of every one of those real technologies and exactly which page lets you
 try each one for yourself.
 
@@ -40,7 +41,7 @@ Everything beyond this page lives in **[`info/`](./info)**:
 | **[`info/codebase.md`](./info/codebase.md)** | The codebase's architecture: why it's split into four services the way it is, every tech-stack choice and its trade-offs, a file-by-file explanation of the whole repo, and how to set it up and run it on your own machine. |
 | **[`info/deployment.md`](./info/deployment.md)** | The exact steps to deploy this app: Google Cloud Run + a free Neon Postgres instance, for a genuine $0/month, written as a complete walkthrough from a blank starting point (no cloud account, nothing installed). |
 | **[`info/CI-CD.md`](./info/CI-CD.md)** | The GitHub Actions approach taken to automate that deployment, and why: Workload Identity Federation instead of a downloadable service account key, what gets rebuilt and redeployed on every push to `main`, and how to set it up yourself. |
-| **[`info/personalized-explainer-spec.md`](./info/personalized-explainer-spec.md)** | The design record for Chapter 11 / `/explain` (now built): why it's grounded in real retrieval before generating anything, why it produces Mermaid text instead of raw diagram coordinates, and why the tool exists on two separate pages. Kept in its own file so this reasoning can keep evolving without `codebase.md` growing every time it does. |
+| **[`info/personalized-explainer-spec.md`](./info/personalized-explainer-spec.md)** | The design record for Chapter 10 / `/explain` (now built): why it's grounded in real retrieval before generating anything, why it produces Mermaid text instead of raw diagram coordinates, and why the tool exists on two separate pages. Kept in its own file so this reasoning can keep evolving without `codebase.md` growing every time it does. |
 | **[`info/knowledge-base.md`](./info/knowledge-base.md)** | A from-scratch walkthrough of adding, editing, or removing an article from the RAG knowledge base with `npm run kb`, including what a chunk/embedding actually is, which two database tables are involved, and how to test a change safely before it hits the live database. |
 
 If you're trying to decide where to start: `info/codebase.md` if you want to run this locally or
@@ -65,8 +66,8 @@ other way to run this (Docker Compose, one service at a time) are in `info/codeb
 
 React/Next.js (TypeScript) frontend · Node.js/Express (TypeScript) API orchestrator · Python/FastAPI
 microservice · PostgreSQL + pgvector · a standalone Model Context Protocol server · Anthropic Claude
-(chat/RAG/agent/tokenization) · LangChain + LangGraph (Chapter 11's real, multi-step workflow) ·
-Mermaid.js (Chapter 11's diagram rendering) · Voyage AI (embeddings) · WeatherAPI.com (the agent's
+(chat/RAG/agent/tokenization) · LangChain + LangGraph (Chapter 10's real, multi-step workflow) ·
+Mermaid.js (Chapter 10's diagram rendering) · Voyage AI (embeddings) · WeatherAPI.com (the agent's
 one real external tool) · Docker + Docker Compose · deployed on Google Cloud Run, with GitHub
 Actions automating every redeploy on push to `main` (see `info/deployment.md` and `info/CI-CD.md`).
 
@@ -93,7 +94,7 @@ The full, annotated version of this tree, with every file's purpose explained, i
 ## Status
 
 A personal project, built end to end (including this README) through an extended, ongoing
-collaboration between a person and an AI coding assistant — Chapter 10 of the app itself
+collaboration between a person and an AI coding assistant — Chapter 11 of the app itself
 (`/building`) tells that story in detail, including the real bugs found along the way, not just
 the parts that went smoothly.
 

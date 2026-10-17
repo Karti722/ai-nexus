@@ -12,7 +12,7 @@ export default function ArchitecturePage() {
         title="The System Behind This Tutorial"
         pageNumber="Page 9"
         prevPage={{ href: "/enterprise", label: "Chapter 8: These Concepts in the Real World" }}
-        nextPage={{ href: "/building", label: "Chapter 10: How This Tutorial Was Built" }}
+        nextPage={{ href: "/workflows", label: "Chapter 10: A Personalized, Diagram-Based Explainer" }}
       >
         <ArchitectureIllustration />
         <p>
@@ -183,7 +183,7 @@ export default function ArchitecturePage() {
           explicitly forward its own environment to the MCP server it spawns, or the weather tool's
           API key would never actually reach it no matter how correctly it's set on the orchestrator
           itself. This is the same class of "it's configured correctly, but nothing actually passes
-          it through" gap as the local `.env`-loading fix Chapter 10 describes for the Python service,
+          it through" gap as the local `.env`-loading fix Chapter 11 describes for the Python service,
           just one layer further down the process tree.
         </p>
 

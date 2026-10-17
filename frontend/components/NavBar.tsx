@@ -15,8 +15,8 @@ const LINKS = [
   { href: "/eval", label: "Evaluating AI Outputs", chapter: "Ch. 7" },
   { href: "/enterprise", label: "Enterprise Use", chapter: "Ch. 8" },
   { href: "/architecture", label: "Architecture", chapter: "Ch. 9" },
-  { href: "/building", label: "How This Was Built", chapter: "Ch. 10" },
-  { href: "/langgraph", label: "Diagram-Based Explainer", chapter: "Ch. 11" },
+  { href: "/workflows", label: "Diagram-Based Explainer", chapter: "Ch. 10" },
+  { href: "/building", label: "How This Was Built", chapter: "Ch. 11" },
   { href: "/glossary", label: "Glossary" },
 ];
 

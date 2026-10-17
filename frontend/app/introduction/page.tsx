@@ -63,13 +63,13 @@ export default function IntroductionPage() {
         <p>
           AI Nexus was built to sit in that gap directly: a textbook's worth of explanation,
           attached to a real, running application instead of a slide deck. Every chapter follows
-          the same shape: a live demo first, then the concept behind it, explained from first
-          principles and tied back to a real, cited source wherever one exists. Nothing is
+          the same shape: the concept explained first, from first principles and tied back to a
+          real, cited source wherever one exists, then a live demo to try it yourself. Nothing is
           simulated to make a point look cleaner than it is. The agent in Chapter 4 calls a tool
           server over the actual Model Context Protocol; the summarizer in Chapter 5 runs a real
           graph-ranking algorithm over real embeddings; the cost estimate in Chapter 1 is computed
           from Claude's own real token count, not an estimate. Chapter 9 goes one level
-          further and explains the system doing all of this, and Chapter 10 explains how the whole
+          further and explains the system doing all of this, and Chapter 11 explains how the whole
           thing was actually built, so curiosity about the guide itself is answered by the guide
           itself, rather than left as an exercise.
         </p>

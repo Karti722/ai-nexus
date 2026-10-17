@@ -6,11 +6,11 @@ export default function BuildingPage() {
   return (
     <div className="space-y-10">
       <TextbookPage
-        eyebrow="Chapter 10"
+        eyebrow="Chapter 11"
         title="How This Tutorial Was Built"
-        pageNumber="Page 10"
-        prevPage={{ href: "/architecture", label: "Chapter 9: The System Behind This Tutorial" }}
-        nextPage={{ href: "/langgraph", label: "Chapter 11: A Personalized, Diagram-Based Explainer" }}
+        pageNumber="Page 11"
+        prevPage={{ href: "/workflows", label: "Chapter 10: A Personalized, Diagram-Based Explainer" }}
+        nextPage={{ href: "/glossary", label: "Glossary" }}
       >
         <BuildingIllustration />
         <p>
@@ -22,7 +22,7 @@ export default function BuildingPage() {
         </p>
 
         <h2 className="font-display text-lg font-bold text-paper-ink">
-          <span className="text-brand-600">10.1</span> An Iterative Loop, Not a Single Prompt
+          <span className="text-brand-600">11.1</span> An Iterative Loop, Not a Single Prompt
         </h2>
         <p>
           The process looked like the ReAct loop from Chapter 4, just running on source code instead
@@ -40,7 +40,7 @@ export default function BuildingPage() {
         </p>
 
         <h2 className="font-display text-lg font-bold text-paper-ink">
-          <span className="text-brand-600">10.2</span> The Visual Identity, Twice
+          <span className="text-brand-600">11.2</span> The Visual Identity, Twice
         </h2>
         <p>
           The visual design in particular went through several complete passes, not one. It started
@@ -53,7 +53,7 @@ export default function BuildingPage() {
         </p>
 
         <h2 className="font-display text-lg font-bold text-paper-ink">
-          <span className="text-brand-600">10.3</span> Chapters Added in Batches, Not All at Once
+          <span className="text-brand-600">11.3</span> Chapters Added in Batches, Not All at Once
         </h2>
         <p>
           The chapter list didn't exist in its current form from the start either. Early work
@@ -74,7 +74,7 @@ export default function BuildingPage() {
         </p>
 
         <h2 className="font-display text-lg font-bold text-paper-ink">
-          <span className="text-brand-600">10.4</span> Real Bugs, Found by Actually Running the System
+          <span className="text-brand-600">11.4</span> Real Bugs, Found by Actually Running the System
         </h2>
         <p>
           A meaningful share of the work wasn't adding chapters at all, it was fixing things a first
@@ -97,7 +97,7 @@ export default function BuildingPage() {
         </p>
 
         <h2 className="font-display text-lg font-bold text-paper-ink">
-          <span className="text-brand-600">10.5</span> The Most Recent Chapter of This Story
+          <span className="text-brand-600">11.5</span> Replacing the Last Two Mock Implementations
         </h2>
         <p>
           The tokenizer and embeddings you can try in Chapters 1 and 3 right now used to be
@@ -114,8 +114,33 @@ export default function BuildingPage() {
           in a loop, rather than one batched request for everything at once, exactly the kind of
           bug that only shows up once you actually run the feature against a real account instead
           of reasoning about whether the code looks correct. Both were found the same way every
-          other fix in 10.4 was: by running the real system, watching it fail, and reading the
+          other fix in 11.4 was: by running the real system, watching it fail, and reading the
           actual error closely enough to find the real cause instead of the first plausible guess.
+        </p>
+
+        <h2 className="font-display text-lg font-bold text-paper-ink">
+          <span className="text-brand-600">11.6</span> The Most Recent Chapter of This Story
+        </h2>
+        <p>
+          The latest round of changes was mostly about clarity, not new backend capability. Every
+          chapter got a small SVG illustration at the top, drawn for that chapter's specific
+          concept rather than reused from one generic template. Every interactive chapter was
+          restructured so the explanatory text comes first and the "Try it yourself" demo comes
+          second, with a jump link right at the top that smooth-scrolls straight down to the demo
+          for a reader who already knows the concept and just wants to try it. Chapter 10, the
+          diagram-based explainer, got a more substantial change on top of that: it used to
+          demonstrate LangGraph alone, with LangChain mentioned only in passing, which read as
+          confusing to someone meeting both names for the first time and reasonably assuming
+          they're the same thing. It now runs two separate, real implementations side by side: a
+          single plain LangChain call (a prompt template piped straight into Claude, no graph)
+          next to the original three-step LangGraph <code>StateGraph</code> workflow, each
+          visually distinct, each described in its own words, so the actual difference between
+          the two libraries is something you can click through rather than take on faith. That
+          chapter was also moved from Chapter 11 to Chapter 10, swapping places with this one,
+          since it fits more naturally right after Chapter 9's architecture tour than at the very
+          end of the book, and its route changed from <code>/langgraph</code> to{" "}
+          <code>/workflows</code> so the URL stopped implying it covers only one of the two tools
+          it actually demonstrates.
         </p>
 
         <Analogy>
@@ -131,7 +156,7 @@ export default function BuildingPage() {
           None of this should be read as "no one designed this." Every structural decision (what to
           teach and in what order, what to explain about the system versus keep simple, which
           real-world examples in Chapter 8 were credible enough to include, which of the fixes in
-          10.4 and 10.5 were worth explaining here rather than leaving as an invisible patch) was
+          11.4 and 11.5 were worth explaining here rather than leaving as an invisible patch) was
           made by a person, checked against real sources or a real running system where it mattered,
           and revised repeatedly until it was right. The assistant did the typing, ran the commands
           and reported back what actually happened. The judgment, and the decision to trust or

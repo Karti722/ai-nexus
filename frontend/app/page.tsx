@@ -68,17 +68,17 @@ const CHAPTERS = [
   },
   {
     number: "Chapter 10",
-    href: "/building",
-    title: "How This Tutorial Was Built",
-    description: "The story of how an AI coding assistant and a person built this, together.",
+    href: "/workflows",
+    title: "A Personalized, Diagram-Based Explainer",
+    description: "Ask your own question and get back a real diagram and explanation built just for it.",
     part: "Part III — Beyond the Model",
   },
   {
     number: "Chapter 11",
-    href: "/langgraph",
-    title: "A Personalized, Diagram-Based Explainer",
-    description: "Ask your own question and get back a real diagram and explanation built just for it.",
-    part: "Part IV — Ask the App",
+    href: "/building",
+    title: "How This Tutorial Was Built",
+    description: "The story of how an AI coding assistant and a person built this, together.",
+    part: "Part III — Beyond the Model",
   },
 ];
 

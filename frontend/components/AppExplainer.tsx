@@ -14,7 +14,7 @@ const SAMPLE_QUESTIONS = [
 ];
 
 /**
- * The one real implementation behind both the Chapter 11 textbook page and
+ * The one real implementation behind both the Chapter 10 textbook page and
  * the bare `/explain` page (see info/personalized-explainer-spec.md section
  * 2): a question goes to a real LangGraph workflow that retrieves from the
  * same knowledge base Chapter 3's RAG uses, then generates a Mermaid
@@ -106,7 +106,23 @@ export function AppExplainer() {
   }
 
   return (
-    <div className="card space-y-4">
+    <div className="card space-y-4 border-l-[3px] !border-l-amber-700/50">
+      <div className="flex items-center justify-between gap-3">
+        <h3 className="font-display text-xs font-bold uppercase tracking-[0.2em] text-paper-ink/50">
+          LangGraph workflow
+        </h3>
+        <span className="pill border-amber-700/30 bg-amber-700/[0.06] text-amber-800">
+          3-step graph
+        </span>
+      </div>
+      <p className="text-sm text-paper-ink/60">
+        This box does more work behind the scenes, in the same fixed order every time. First, it
+        searches a real knowledge base for passages related to your question. Second, it sends
+        those passages to Claude and asks for a diagram. Third, it sends the same passages to
+        Claude again, separately, and asks for a written explanation. Three steps chained
+        together in sequence, not the single request-and-reply in the box above.
+      </p>
+
       <form onSubmit={handleGenerate} className="flex flex-col gap-2 sm:flex-row">
         <input
           className="input"

@@ -17,7 +17,7 @@ const TECHNOLOGIES: TechEntry[] = [
       { href: "/rag", label: "RAG" },
       { href: "/agent", label: "AI Agent" },
       { href: "/summarize", label: "Summarization" },
-      { href: "/langgraph", label: "Diagram-Based Explainer" },
+      { href: "/workflows", label: "Diagram-Based Explainer" },
     ],
   },
   {
@@ -42,7 +42,7 @@ const TECHNOLOGIES: TechEntry[] = [
       { href: "/cache", label: "Semantic Caching" },
       { href: "/summarize", label: "Summarization" },
       { href: "/eval", label: "Evaluating AI Outputs" },
-      { href: "/langgraph", label: "Diagram-Based Explainer" },
+      { href: "/workflows", label: "Diagram-Based Explainer" },
     ],
   },
   {
@@ -67,7 +67,7 @@ const TECHNOLOGIES: TechEntry[] = [
     name: "LangChain and LangGraph",
     description:
       "A different approach than the hand-built agent above: a fixed, multi-step pipeline (look things up, draw a diagram, write an explanation) built with the same libraries real production AI applications use for structured, multi-step AI workflows.",
-    routes: [{ href: "/langgraph", label: "Diagram-Based Explainer" }],
+    routes: [{ href: "/workflows", label: "Diagram-Based Explainer" }],
   },
   {
     name: "Semantic caching",

@@ -5,6 +5,7 @@ import { cacheRouter } from "./routes/cache.route";
 import { chatRouter } from "./routes/chat.route";
 import { evalRouter } from "./routes/eval.route";
 import { explainRouter } from "./routes/explain.route";
+import { langchainDemoRouter } from "./routes/langchainDemo.route";
 import { ragRouter } from "./routes/rag.route";
 import { summarizeRouter } from "./routes/summarize.route";
 import { tokenizerRouter } from "./routes/tokenizer.route";
@@ -28,6 +29,7 @@ app.use("/api/tokenize", tokenizerRouter);
 app.use("/api/cache-sim", cacheRouter);
 app.use("/api/evaluate", evalRouter);
 app.use("/api/explain", explainRouter);
+app.use("/api/langchain-demo", langchainDemoRouter);
 
 async function main() {
   await seedKnowledgeBaseIfEmpty();

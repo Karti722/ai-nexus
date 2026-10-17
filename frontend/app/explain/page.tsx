@@ -4,9 +4,9 @@ import { AppExplainer } from "@/components/AppExplainer";
 /**
  * The bare, no-textbook-chrome entry point for someone who wants this app
  * explained to them directly, without first having to know what "Chapter
- * 11" or "LangGraph" mean. See info/personalized-explainer-spec.md section
+ * 10" or "LangGraph" mean. See info/personalized-explainer-spec.md section
  * 2 for why this exists as its own page rather than just being folded into
- * Chapter 11: a first-time, possibly confused visitor shouldn't be handed a
+ * Chapter 10: a first-time, possibly confused visitor shouldn't be handed a
  * second unfamiliar concept while asking to have the first one explained.
  */
 export default function ExplainPage() {
