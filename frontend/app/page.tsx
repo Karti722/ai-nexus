@@ -5,8 +5,8 @@ import { LandingBook } from "@/components/LandingBook";
  * The book's cover: title, byline, a one-line pitch and the two ways to
  * start, nothing else. The full table of contents used to live here too,
  * but a real book's cover doesn't print its chapter list; that's its own
- * page a few leaves in (see app/contents/page.tsx), which this page links
- * to instead of reproducing inline.
+ * page a few leaves in (see app/contents/page.tsx), which the "open to
+ * begin reading" book (LandingBook.tsx) links to directly.
  */
 export default function HomePage() {
   return (
@@ -62,33 +62,9 @@ export default function HomePage() {
         </Link>
       </div>
 
-      <div className="mx-auto mt-10 h-px w-24 bg-paper-ink/20" />
-
-      <Link
-        href="/contents"
-        className="group mt-6 inline-flex items-center gap-1.5 font-display text-xs font-bold uppercase tracking-[0.2em] text-paper-ink/50 transition hover:text-brand-700"
-      >
-        Browse the full table of contents
-        <span aria-hidden className="transition group-hover:translate-x-0.5">
-          &rarr;
-        </span>
-      </Link>
-
       <div className="mt-14 flex items-center justify-between border-t border-paper-ink/15 pt-3 font-display text-xs uppercase tracking-widest text-paper-ink/40">
         <span>AI Nexus: An Interactive Tutorial</span>
         <span>Page i</span>
-      </div>
-
-      <div className="mt-4 flex items-start justify-end gap-4 font-display text-xs uppercase tracking-wide">
-        <Link
-          href="/contents"
-          className="group flex max-w-[45%] items-baseline gap-1.5 text-right text-paper-ink/60 transition hover:text-brand-700"
-        >
-          <span className="truncate normal-case tracking-normal text-paper-ink/80 underline decoration-paper-ink/25 decoration-dotted underline-offset-4 transition group-hover:text-brand-700 group-hover:decoration-brand-500">
-            Table of Contents
-          </span>
-          <span aria-hidden>&rarr;</span>
-        </Link>
       </div>
     </div>
   );

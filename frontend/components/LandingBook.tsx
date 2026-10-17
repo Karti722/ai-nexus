@@ -14,7 +14,9 @@ import { HomeIllustration } from "@/components/HomeIllustration";
  * any click necessarily passes through that hover/active state first, goes
  * to the first chapter, Introduction: opening the book is how you start
  * reading. Both SVGs stay in the DOM and crossfade with opacity, so the
- * hero's height never jumps between states.
+ * hero's height never jumps between states. Links to the table of contents,
+ * not straight to Chapter 1: opening a real book's cover reveals its
+ * contents page first, not the first chapter directly.
  *
  * Wrapped in a visible bordered card, at rest, not just on hover: a first-
  * time visitor has no reason to hover an unlabeled illustration to discover
@@ -26,8 +28,8 @@ import { HomeIllustration } from "@/components/HomeIllustration";
 export function LandingBook() {
   return (
     <Link
-      href="/introduction"
-      aria-label="Open the book and start reading: Introduction"
+      href="/contents"
+      aria-label="Open the book and start reading: Table of Contents"
       className="group mx-auto flex w-fit flex-col items-center gap-2 rounded-sm border border-paper-ink/15 bg-paper-ink/[0.02] px-8 py-5 transition hover:border-brand-500/40 hover:bg-brand-500/[0.04]"
     >
       <span className="relative mx-auto block h-20 w-44 sm:h-24">
