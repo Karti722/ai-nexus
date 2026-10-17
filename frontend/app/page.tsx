@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ExplainIcon } from "@/components/ExplainIcon";
 import { LandingBook } from "@/components/LandingBook";
 
 /**
@@ -51,9 +52,10 @@ export default function HomePage() {
 
         <Link
           href="/explain"
-          className="group flex flex-col items-center justify-center gap-1.5 rounded-sm border border-brand-500/30 bg-brand-500/[0.05] px-6 py-5 text-sm text-paper-ink/80 transition hover:border-brand-500/50 hover:bg-brand-500/[0.08] sm:max-w-[15rem]"
+          className="group flex w-fit flex-col items-center gap-2 rounded-sm border border-paper-ink/15 bg-paper-ink/[0.02] px-6 py-5 text-sm text-paper-ink/80 transition hover:border-brand-500/40 hover:bg-brand-500/[0.04] sm:max-w-[15rem]"
         >
-          <span className="underline decoration-paper-ink/25 underline-offset-4 transition group-hover:text-brand-700 group-hover:decoration-brand-500">
+          <ExplainIcon className="h-20 w-auto sm:h-24" />
+          <span className="font-serif text-sm italic text-paper-ink/70 underline decoration-paper-ink/25 underline-offset-4 transition group-hover:text-brand-700 group-hover:decoration-brand-500">
             Generate a personalized explanation of this app
           </span>
           <span className="shrink-0 text-xs italic text-paper-ink/50">
