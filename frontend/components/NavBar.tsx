@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { BrandLogo } from "@/components/BrandLogo";
 
 const LINKS = [
   { href: "/introduction", label: "Introduction" },
@@ -52,13 +53,7 @@ export function NavBar() {
   return (
     <header className="sticky top-0 z-20 border-b border-paper-ink/10 bg-[#efe8d8]/90 backdrop-blur">
       <div className="mx-auto flex max-w-5xl items-center gap-2 px-4 py-3 sm:gap-4 sm:px-6 sm:py-4">
-        <Link
-          href="/"
-          className="flex shrink-0 items-center gap-2 whitespace-nowrap font-display text-base font-bold tracking-tight text-paper-ink sm:text-lg"
-        >
-          <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-full bg-brand-500" />
-          AI Nexus
-        </Link>
+        <BrandLogo isHome={pathname === "/"} />
 
         {/* Tablet and up: a horizontal, scrollable chapter strip */}
         <div className="relative hidden min-w-0 flex-1 items-center md:flex">

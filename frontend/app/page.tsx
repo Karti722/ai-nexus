@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { HomeIllustration } from "@/components/HomeIllustration";
+import { LandingBook } from "@/components/LandingBook";
 import { Reveal } from "@/components/Reveal";
 
 const CHAPTERS = [
@@ -91,9 +91,7 @@ export default function HomePage() {
         aria-hidden
       />
 
-      <HomeIllustration />
-
-      <p className="mt-4 font-display text-xs font-bold uppercase tracking-[0.25em] text-brand-600 sm:tracking-[0.35em]">
+      <p className="font-display text-xs font-bold uppercase tracking-[0.25em] text-brand-600 sm:tracking-[0.35em]">
         An Interactive Tutorial
       </p>
 
@@ -118,15 +116,25 @@ export default function HomePage() {
         modern AI actually works by using it yourself, no experience required.
       </p>
 
-      <Link
-        href="/explain"
-        className="group mx-auto mt-5 inline-flex max-w-md items-center gap-2 rounded-sm border border-brand-500/30 bg-brand-500/[0.05] px-4 py-2 text-sm text-paper-ink/80 transition hover:border-brand-500/50 hover:bg-brand-500/[0.08]"
-      >
-        <span className="underline decoration-paper-ink/25 underline-offset-4 transition group-hover:text-brand-700 group-hover:decoration-brand-500">
-          Generate a personalized explanation of this app
-        </span>
-        <span className="shrink-0 text-xs italic text-paper-ink/50">(recommended if reading isn't your style)</span>
-      </Link>
+      <p className="mt-8 font-display text-xs font-bold uppercase tracking-[0.2em] text-paper-ink/40">
+        Two ways to start
+      </p>
+
+      <div className="mx-auto mt-3 flex flex-col items-center justify-center gap-4 sm:flex-row sm:items-stretch">
+        <LandingBook />
+
+        <Link
+          href="/explain"
+          className="group flex flex-col items-center justify-center gap-1.5 rounded-sm border border-brand-500/30 bg-brand-500/[0.05] px-6 py-5 text-sm text-paper-ink/80 transition hover:border-brand-500/50 hover:bg-brand-500/[0.08] sm:max-w-[15rem]"
+        >
+          <span className="underline decoration-paper-ink/25 underline-offset-4 transition group-hover:text-brand-700 group-hover:decoration-brand-500">
+            Generate a personalized explanation of this app
+          </span>
+          <span className="shrink-0 text-xs italic text-paper-ink/50">
+            (recommended if reading isn't your style)
+          </span>
+        </Link>
+      </div>
 
       <div className="mx-auto mt-10 h-px w-24 bg-paper-ink/20" />
 

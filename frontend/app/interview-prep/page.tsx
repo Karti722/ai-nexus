@@ -284,7 +284,7 @@ export default function InterviewPrepPage() {
           (`@modelcontextprotocol/sdk`) provides both the client half (used by `mcpClient.ts` to
           talk to `mcp-server`) and, in `mcp-server/`, the server half. <strong>LangChain</strong>{" "}
           (`@langchain/core`, `@langchain/anthropic`) and <strong>LangGraph</strong>{" "}
-          (`@langchain/langgraph`) are used in exactly one place, the Chapter 11 explainer, to build
+          (`@langchain/langgraph`) are used in exactly one place, the Chapter 10 explainer, to build
           a real multi-step graph-based AI workflow instead of a single prompt-and-response call.
         </p>
         <BranchFigure
@@ -356,7 +356,7 @@ export default function InterviewPrepPage() {
           `get_weather` tool makes a genuine HTTP call to it, no simulated data. <strong>Mermaid.js</strong>{" "}
           is a JavaScript library, running entirely in the browser, that turns a small text
           description (e.g. "box A points to box B") into an actual rendered diagram; it's what
-          draws the Chapter 11 explainer's diagrams from the text Claude produces.
+          draws the Chapter 10 explainer's diagrams from the text Claude produces.
         </p>
         <BranchFigure
           trunk={{ label: "Called over the real network" }}
@@ -803,7 +803,7 @@ export default function InterviewPrepPage() {
               them correctly." It only becomes part of an AI feature because, in this app, some of
               those individual steps happen to ask Claude something while they run. In this app,
               LangGraph is used in exactly one feature, the one that draws diagrams and writes
-              explanations about the app itself (Chapter 11 / `/explain`). The hand-built AI agent
+              explanations about the app itself (Chapter 10 / `/explain`). The hand-built AI agent
               (Chapter 4) is a completely different, simpler kind of "multiple steps" (a loop that
               repeats until it's done) and doesn't use LangGraph at all.
             </p>
@@ -820,7 +820,7 @@ export default function InterviewPrepPage() {
         <Explanation
           technical={
             <p>
-              <strong>The LangGraph explainer (Chapter 11, `/langgraph` and `/explain`):</strong>{" "}
+              <strong>The LangGraph explainer (Chapter 10, `/workflows` and `/explain`):</strong>{" "}
               `backend/src/explainer/buildAndRun.ts`'s `explainApp()` function builds a LangGraph
               `StateGraph` with exactly three nodes wired in a fixed line: start, then `retrieve`,
               then `diagram`, then `explain`, then end — never a loop, never a branch. `retrieve`
@@ -850,7 +850,7 @@ export default function InterviewPrepPage() {
           }
           beginner={
             <p>
-              <strong>The LangGraph explainer (Chapter 11, `/langgraph` and `/explain`), simply:</strong>{" "}
+              <strong>The LangGraph explainer (Chapter 10, `/workflows` and `/explain`), simply:</strong>{" "}
               this feature lets you ask any question about how this very app works, like "how does
               the agent decide to use a tool?," and get back both a real diagram and a real written
               explanation, generated fresh for your exact question. Unlike the agent above, which
@@ -1163,7 +1163,7 @@ export default function InterviewPrepPage() {
             <p>
               <strong>TextRank, simply:</strong> this is how the app picks out a document's most
               important sentences for a summary, without any AI model doing the actual picking, a
-              completely different, non-AI approach than Chapter 11's explainer above. Here's the
+              completely different, non-AI approach than Chapter 10's explainer above. Here's the
               idea: every sentence in the document gets compared to every other sentence, and each
               one effectively "votes" for the sentences it's similar to. A sentence that lots of
               other sentences in the document are similar to is probably central to what the
@@ -1564,7 +1564,7 @@ export default function InterviewPrepPage() {
           technically. Using it myself made clear it handed a new visitor a blank canvas with no
           guidance on what to actually build. Rather than ship something technically correct but
           confusing, I deleted it entirely, frontend and backend both, and replaced the whole idea
-          with something better-scoped: the question-driven explainer (Chapter 11), where a user
+          with something better-scoped: the question-driven explainer (Chapter 10), where a user
           just types a question instead of constructing a graph by hand.
         </p>
         <CompareFigure
@@ -1602,7 +1602,7 @@ export default function InterviewPrepPage() {
           caption="would have been the same capability wrapped in a framework, not a new one."
         />
         <p>
-          <strong>No speech-to-text input on Chapter 11, only text-to-speech output.</strong> A
+          <strong>No speech-to-text input on Chapter 10, only text-to-speech output.</strong> A
           microphone permission prompt on a page meant to help a confused visitor would add a new
           failure mode to a feature whose entire purpose is reducing confusion. Text-to-speech
           output survived as a small, real accessibility feature (a "Listen" button using the
@@ -2068,7 +2068,7 @@ export default function InterviewPrepPage() {
           Full doc: info/personalized-explainer-spec.md
         </h2>
         <p className="italic text-paper-ink/60">
-          The complete, real design record for Chapter 11 / `/explain`, including every alternative
+          The complete, real design record for Chapter 10 / `/explain`, including every alternative
           considered and rejected along the way.
         </p>
         <RawDoc content={EXPLAINER_SPEC_MD} />

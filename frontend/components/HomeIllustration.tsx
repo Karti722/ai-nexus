@@ -1,17 +1,33 @@
+interface HomeIllustrationProps {
+  className?: string;
+  /** True when reused somewhere the surrounding content (e.g. the nav bar's
+   * "AI Nexus" text) already names it, so the icon itself shouldn't also
+   * announce itself to assistive tech and end up read twice. */
+  decorative?: boolean;
+}
+
 /**
  * A small, hand-drawn open-book illustration for the homepage, matching the
  * site's printed-textbook identity (paper tones, brand accent) rather than a
  * generic tech/AI graphic. Pure inline SVG: no external image, no network
  * request, scales cleanly at any size, styled with the same Tailwind color
  * tokens (paper-ink, brand) as the rest of the app rather than hardcoded hex.
+ * Also reused, smaller, as the nav bar's open-book state (see NavBar.tsx).
  */
-export function HomeIllustration() {
+export function HomeIllustration({
+  className = "mx-auto h-20 w-auto sm:h-24",
+  decorative = false,
+}: HomeIllustrationProps = {}) {
   return (
     <svg
       viewBox="0 0 220 120"
-      className="mx-auto h-20 w-auto sm:h-24"
-      role="img"
-      aria-label="An open book, with a small glowing spark rising from its pages"
+      className={className}
+      {...(decorative
+        ? { "aria-hidden": true }
+        : {
+            role: "img",
+            "aria-label": "An open book, with a small glowing spark rising from its pages",
+          })}
     >
       {/* left page */}
       <path
